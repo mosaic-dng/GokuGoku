@@ -9,6 +9,8 @@ const root = path.join(__dirname, '..');
 const indexHtml = fs.readFileSync(path.join(root, 'ui', 'index.html'), 'utf8');
 const indexJs = fs.readFileSync(path.join(root, 'ui', 'index.js'), 'utf8');
 const styleCss = fs.readFileSync(path.join(root, 'ui', 'style.css'), 'utf8');
+const reminderHtml = fs.readFileSync(path.join(root, 'ui', 'reminder.html'), 'utf8');
+const reminderJs = fs.readFileSync(path.join(root, 'ui', 'reminder.js'), 'utf8');
 const hydrationJs = fs.readFileSync(path.join(root, 'lib', 'hydration.js'), 'utf8');
 const mainJs = fs.readFileSync(path.join(root, 'main.js'), 'utf8');
 const preloadJs = fs.readFileSync(path.join(root, 'preload.js'), 'utf8');
@@ -67,8 +69,10 @@ test('profile and interval settings use direct numeric entry with new terminolog
   assert.match(indexHtml, /id="intervalInput"[^>]*type="number"[^>]*min="1"[^>]*max="1440"[^>]*step="1"/);
   assert.match(indexHtml, /id="setupInterval"[^>]*type="number"[^>]*min="1"[^>]*max="1440"[^>]*step="1"/);
   assert.match(indexHtml, /id="intervalInput"[^>]*aria-label="催水间隔（分钟）"/);
-  assert.match(indexHtml, /id="selStart"[^>]*aria-label="上班开始时间"/);
-  assert.match(indexHtml, /id="selEnd"[^>]*aria-label="上班结束时间"/);
+  assert.match(indexHtml, /id="selStart"[^>]*type="time"[^>]*step="60"[^>]*aria-label="上班开始时间"/);
+  assert.match(indexHtml, /id="selEnd"[^>]*type="time"[^>]*step="60"[^>]*aria-label="上班结束时间"/);
+  assert.match(indexHtml, /id="setupStart"[^>]*type="time"[^>]*step="60"[^>]*value="09:00"/);
+  assert.match(indexHtml, /id="setupEnd"[^>]*type="time"[^>]*step="60"[^>]*value="18:00"/);
   assert.equal(indexHtml.includes(`id="${legacyTerms.segmentedInterval}"`), false);
   assert.equal(indexHtml.includes(legacyTerms.cupCapacity), false);
   assert.equal(indexHtml.includes(legacyTerms.perCupCapacity), false);
@@ -76,7 +80,54 @@ test('profile and interval settings use direct numeric entry with new terminolog
   assert.equal(indexJs.includes(legacyTerms.intervalModeAutoSetter), false);
   assert.doesNotMatch(indexJs, /buildIntervalButtons/);
   assert.doesNotMatch(indexJs, /syncIntervalButtons/);
-  assert.match(indexJs, /saveProfile\(\{\s*weightKg:\s*weight,\s*cupMl:\s*cup,\s*intervalMin:\s*interval,/s);
+  assert.match(
+    indexJs,
+    /saveProfile\(\{\s*weightKg:\s*weight,\s*cupMl:\s*cup,\s*intervalMin:\s*interval,\s*workStart,\s*workEnd,\s*dndRanges:\s*ranges/s,
+  );
+});
+
+test('numeric profile controls hide native spinner arrows without shrinking inputs', () => {
+  assert.match(
+    styleCss,
+    /input\[type="number"\]::-webkit-inner-spin-button,\s*input\[type="number"\]::-webkit-outer-spin-button\s*\{[^}]*-webkit-appearance:\s*none/s,
+  );
+  assert.match(styleCss, /input\[type="number"\]\s*\{[^}]*appearance:\s*textfield/s);
+  assert.match(styleCss, /input\s*\{[^}]*height:\s*42px/s);
+});
+
+test('onboarding contains full and compact two-step structure with no scrolling', () => {
+  assert.match(indexHtml, /class="setup-pane setup-profile-pane"[^>]*data-step="1"/);
+  assert.match(indexHtml, /class="setup-pane setup-finish-pane"[^>]*data-step="2"/);
+  assert.match(indexHtml, /id="setupNext"/);
+  assert.match(indexHtml, /id="setupBack"/);
+  assert.match(indexJs, /function setSetupStep\(step\)/);
+  assert.match(indexJs, /window\.innerHeight < 800/);
+  assert.match(indexJs, /classList\.toggle\('compact', compact\)/);
+  const setupRule = indexHtml.match(/\.setup-overlay\s*\{([^}]*)\}/s);
+  assert.ok(setupRule);
+  assert.match(setupRule[1], /overflow:\s*hidden/);
+  assert.doesNotMatch(setupRule[1], /overflow-y:\s*auto/);
+});
+
+test('progress and drink feedback animate only on meaningful state changes', () => {
+  assert.match(indexHtml, /id="progressBar"[^>]*role="progressbar"/);
+  assert.match(indexJs, /function renderProgress\(\)/);
+  assert.match(indexJs, /progress\.style\.width = `\$\{percentage\}%`/);
+  assert.match(indexJs, /progress\.setAttribute\('aria-valuenow', String\(percentage\)\)/);
+  assert.match(indexJs, /classList\.add\('count-bump'\)/);
+  assert.match(indexHtml, /\.progress-fill\s*\{[^}]*transition:\s*width \.3s/s);
+  assert.match(indexHtml, /@keyframes countBump/);
+});
+
+test('motion is restrained and reduced-motion disables movement and typewriting', () => {
+  assert.match(indexHtml, /\.ui-ready \.content > \*/);
+  assert.match(indexHtml, /animation-delay:\s*\.08s/);
+  assert.match(indexHtml, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(indexHtml, /animation-duration:\s*\.01ms !important/);
+  assert.match(reminderHtml, /@keyframes enter/);
+  assert.match(reminderHtml, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(reminderJs, /const reducedMotion = window\.matchMedia\('\(prefers-reduced-motion: reduce\)'\)/);
+  assert.match(reminderJs, /if \(reducedMotion\.matches\) \{\s*\$\('#txt'\)\.textContent = text;/s);
 });
 
 test('renderer preserves drafts and storage errors across periodic state updates', () => {
@@ -97,7 +148,7 @@ test('successful onboarding synchronizes the hidden main settings draft', () => 
   assert.match(indexJs, /if \(!settingsDraftReady\) \{\s*populateSettingsDraft\(state\);/s);
   assert.match(
     indexJs,
-    /if \(setup\) \{\s*populateSettingsDraft\(\{\s*weightKg:\s*weight,\s*cupMl:\s*cup,\s*intervalMin:\s*interval,\s*dndRanges:\s*ranges,?\s*\}\);/s,
+    /if \(setup\) \{\s*populateSettingsDraft\(\{\s*weightKg:\s*weight,\s*cupMl:\s*cup,\s*intervalMin:\s*interval,\s*workStart,\s*workEnd,\s*dndRanges:\s*ranges,?\s*\}\);/s,
   );
 });
 
@@ -110,8 +161,10 @@ test('removed automatic interval presentation has no library or stylesheet remna
 test('periodic state rendering never overwrites a focused setting control', () => {
   assert.match(indexJs, /function syncControlValue\(control, value\)/);
   assert.match(indexJs, /document\.activeElement !== control/);
-  assert.match(indexJs, /syncControlValue\(\$\('#selStart'\),\s*S\.workStart\)/);
-  assert.match(indexJs, /syncControlValue\(\$\('#selEnd'\),\s*S\.workEnd\)/);
+  assert.match(indexJs, /\$\('#selStart'\)\.value = profile\.workStart \|\| '09:00'/);
+  assert.match(indexJs, /\$\('#selEnd'\)\.value = profile\.workEnd \|\| '18:00'/);
+  assert.doesNotMatch(indexJs, /syncControlValue\(\$\('#selStart'\),\s*S\.workStart\)/);
+  assert.doesNotMatch(indexJs, /syncControlValue\(\$\('#selEnd'\),\s*S\.workEnd\)/);
   assert.match(indexJs, /syncControlValue\(\$\('#intervalInput'\),\s*S\.intervalMin\)/);
 });
 
@@ -140,12 +193,53 @@ test('main process uses only validated manual reminder intervals', () => {
   assert.match(mainJs, /db\.settings\.intervalMin = validation\.profile\.intervalMin/);
 });
 
+test('main process keeps version-specific backups while upgrading to schema v3', () => {
+  assert.match(mainJs, /function backupFile\(version\)/);
+  assert.match(mainJs, /`gokugoku-data\.v\$\{version\}\.bak\.json`/);
+  assert.match(mainJs, /result\.migratedFromVersion/);
+  assert.match(mainJs, /backupFile\(result\.migratedFromVersion\)/);
+  assert.doesNotMatch(mainJs, /migratedFromV1/);
+  assert.match(mainJs, /if \(migratedFromVersion && !persistenceError\) writeDatabaseAtomic\(\)/);
+});
+
+test('saveProfile persists minute-precise work hours with the rest of the profile', () => {
+  assert.match(mainJs, /db\.settings\.workStart = validation\.profile\.workStart/);
+  assert.match(mainJs, /db\.settings\.workEnd = validation\.profile\.workEnd/);
+  assert.match(mainJs, /db\.settings\.dndRanges = validation\.profile\.dndRanges/);
+  assert.match(mainJs, /validateWorkHours\(candidateStart, candidateEnd\)/);
+  assert.doesNotMatch(mainJs, /db\.settings\.workStart = Number\(value\)/);
+  assert.doesNotMatch(mainJs, /db\.settings\.workEnd = Number\(value\)/);
+});
+
 test('main window uses the compact collapsed height', () => {
   assert.match(mainJs, /width:\s*480/);
-  assert.equal((mainJs.match(/height:\s*720/g) || []).length, 1);
+  assert.match(mainJs, /workArea\.height >= 904 \? 880/);
+  assert.match(mainJs, /profileCompleted \? 720/);
+  assert.match(mainJs, /resizeMainWindow\(720\)/);
   assert.match(mainJs, /const target = open \? Math\.min\(960, workArea\.height - 24\) : 720/);
   assert.match(mainJs, /width:\s*520/);
   assert.match(mainJs, /height:\s*380/);
+});
+
+test('Electron shot mode checks both onboarding layouts for real overflow', () => {
+  for (const filename of [
+    'shot-onboarding-880.png',
+    'shot-onboarding-720-step1.png',
+    'shot-onboarding-720-step2.png',
+  ]) {
+    assert.ok(mainJs.includes(filename), `missing screenshot ${filename}`);
+  }
+  assert.match(mainJs, /overlay\.scrollHeight <= overlay\.clientHeight/);
+  assert.match(mainJs, /card\.scrollHeight <= card\.clientHeight/);
+  assert.match(mainJs, /首次设置页面溢出/);
+  assert.match(mainJs, /function setShotWindowSize\(width, height\)/);
+  assert.match(mainJs, /screen\.getPrimaryDisplay\(\)/);
+  assert.match(mainJs, /Math\.round\(workArea\.x \+ \(workArea\.width - width\) \/ 2\)/);
+  assert.match(mainJs, /mainWin\.getSize\(\)/);
+  assert.match(mainJs, /截图窗口尺寸错误/);
+  assert.match(mainJs, /app\.commandLine\.appendSwitch\('force-device-scale-factor', '1'\)/);
+  assert.match(mainJs, /shotMode\(\)\.catch\(\(error\) =>/);
+  assert.match(mainJs, /app\.exit\(1\)/);
 });
 
 test('daily reset is exposed only through the main settings interface', () => {
@@ -166,16 +260,6 @@ test('release metadata and license meet the Windows packaging contract', () => {
   assert.match(license, /Permission is hereby granted, free of charge, to any person obtaining a copy/);
 
   const packWin = packageJson.scripts['pack:win'];
-  for (const required of [
-    '--win32metadata.CompanyName=水分補給課',
-    '--win32metadata.ProductName=水分補給課',
-    '--asar',
-  ]) {
-    assert.ok(packWin.includes(required), `pack:win must include ${required}`);
-  }
-  assert.doesNotMatch(packWin, /--(?:app|build)-version=/);
+  assert.equal(packWin, 'node scripts/pack-win.js');
   assert.equal(packageJson.engines.node, '>=22.12');
-  for (const excluded of ['dist', 'node_modules', 'test', 'docs']) {
-    assert.match(packWin, new RegExp(`--ignore=\\"\\^/${excluded}`), `pack:win must exclude ${excluded}`);
-  }
 });

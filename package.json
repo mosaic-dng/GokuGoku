@@ -1,7 +1,7 @@
 {
   "name": "gokugoku",
   "productName": "水分補給課",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "咕嘟咕嘟——专治上班族不喝水的小课",
   "main": "main.js",
   "author": "水分補給課",
@@ -12,7 +12,9 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test test/*.test.js",
-    "pack:win": "electron-packager . GokuGoku --platform=win32 --arch=x64 --icon=assets/app.ico --out=dist --overwrite --asar --win32metadata.CompanyName=水分補給課 --win32metadata.ProductName=水分補給課 --ignore=\"^/dist\" --ignore=\"^/node_modules\" --ignore=\"^/test\" --ignore=\"^/docs\" --ignore=\"^/\\.tmp-\" --ignore=\"^/\\.electron-dev\" --ignore=\"^/\\.pack-stage\" --ignore=\"^/\\.shot-data\" --ignore=\"^/\\.shots\" --ignore=\"^/app\\.asar$\" --ignore=\"gen-assets\\.js\""
+    "pack:win": "node scripts/pack-win.js",
+    "verify:win": "node scripts/verify-win-package.js",
+    "verify:shots": "node scripts/verify-shots.js"
   },
   "devDependencies": {
     "@electron/packager": "^20.0.4",

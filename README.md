@@ -1,202 +1,169 @@
 <p align="center">
-  <img src="assets/app.png" width="96" alt="GokuGoku icon">
+  <img src="assets/app.png" width="96" alt="GokuGoku 水滴君图标">
 </p>
 
-<h1 align="center">水分補給課 GokuGoku</h1>
+<h1 align="center">水分補給課 · GokuGoku</h1>
 
 <p align="center">
-  咕嘟咕嘟——专治上班族忘记喝水的 Windows 桌面小课<br>
-  A playful Windows hydration reminder for busy desk workers
-</p>
-
-<p align="center">
-  <a href="#中文">中文</a> · <a href="#english">English</a>
+  一款常驻系统托盘、认真催上班族喝水的 Windows 桌面小应用。
 </p>
 
 <p align="center">
-  <a href="https://github.com/mosaic-dng/GokuGoku/releases/latest"><strong>下载最新版 / Download latest release</strong></a>
+  <a href="https://github.com/mosaic-dng/GokuGoku/releases/latest"><strong>下载最新 Windows 便携版</strong></a>
+  ·
+  <a href="#从源码运行">从源码运行</a>
+  ·
+  <a href="#数据与隐私">数据与隐私</a>
 </p>
 
-## 界面截图 / Screenshots
+> “GokuGoku（ゴクゴク）”是大口喝水时“咕嘟咕嘟”的拟声词。应用界面目前以简体中文为主。
 
-### 主界面 / Main window
+## 它能做什么
 
-![主界面 / Main window](docs/screenshots/main-window.png)
+- 根据体重估算全天饮水参考量，并按分钟级工作时长计算上班目标。
+- 自定义每次喝水量、催水间隔、`HH:MM` 上下班时间与多个免打扰时段。
+- 只在允许的工作时段提醒；周末、午休、会议或下班后保持安静。
+- 提醒窗口会等待你选择喝水、稍后提醒或关闭，也可以附带起身活动提示。
+- 主窗口、提醒窗口与托盘支持快速打卡，误点后可在短时间内撤销。
+- 进度条、杯子、水滴君和提示信息带有克制的状态动效。
+- 遵循 `prefers-reduced-motion`，减少漂浮、位移、打字机和弹跳效果。
+- 所有个人设定与饮水数据仅保存在本机；应用本身不需要联网。
 
-### 入课设置 / Setup
+## 界面
 
-![设置 / Settings](docs/screenshots/settings.png)
+### 首次设置
 
-### 催水提醒 / Hydration reminder
+在空间充足的屏幕上，首次设置会以 `480 × 880` 单页呈现；可用高度不足时自动切换为不带滚动条的 `480 × 720` 两步设置。
 
-![催水提醒 / Hydration reminder](docs/screenshots/reminder.png)
+<p align="center">
+  <img src="docs/screenshots/onboarding.png" width="420" alt="GokuGoku 首次设置">
+</p>
 
----
+### 主界面与课内设置
 
-## 中文
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/main-window.png" width="360" alt="GokuGoku 主界面"></td>
+    <td align="center"><img src="docs/screenshots/settings.png" width="360" alt="GokuGoku 课内设置"></td>
+  </tr>
+  <tr>
+    <td align="center">喝水进度、杯数与下一次提醒</td>
+    <td align="center">体重、杯量、课表和免打扰设置</td>
+  </tr>
+</table>
 
-### 这是什么？
+### 催水提醒
 
-GokuGoku 是一款动森风格的 Windows 喝水提醒应用。“GokuGoku（ゴクゴク）”是日语拟声词，意思接近中文的“咕嘟咕嘟、大口喝水”。
+<p align="center">
+  <img src="docs/screenshots/reminder.png" width="520" alt="GokuGoku 催水提醒窗口">
+</p>
 
-应用常驻系统托盘，只在你允许的工作时间内提醒。所有饮水数据只保存在本机，应用本身不会联网。
+## 下载与使用
 
-### 功能
+前往 [GitHub Releases](https://github.com/mosaic-dng/GokuGoku/releases/latest) 下载：
 
-- **量身设置**：输入体重、每次喝水量、提醒间隔和多个每日免打扰时段。
-- **个性化目标**：全天参考量按 `体重(kg) × 30ml` 计算；上班目标根据工作时长折算。
-- **准确累计**：内部按毫升保存记录，杯数会随当前杯容量重新计算。
-- **免打扰调度**：午休、会议、下班后和非工作日不弹窗。
-- **持续提醒**：允许提醒时，弹窗会等到你选择喝水、推迟或关闭。
-- **喝水＋起身**：可同时提醒起身走动 1–2 分钟。
-- **误点撤销**：主界面、托盘和提醒弹窗均提供短时撤销。
-- **系统托盘常驻**：支持快速打卡、撤销、静音 1 小时和退出。
-- **本地合成音效**：使用 WebAudio 现场生成，也可以关闭。
+```text
+GokuGoku-v1.2.0-Windows-x64.zip
+```
 
-### 普通用户如何使用？
+解压 ZIP 后运行 `GokuGoku.exe`。这是免安装便携目录，请保留解压后的全部文件，不要只单独复制 EXE。
 
-当前项目可从源码直接运行，也可以自行打包成 Windows x64 免安装便携版。如果你从未使用过命令行，请看：
+应用关闭主窗口后仍会驻留系统托盘。需要完全退出时，请使用托盘菜单中的“下课并退出”。
 
-**[零基础源码运行与 Windows 打包教程](docs/BUILDING.md)**
+## 数据与隐私
 
-维护者发布新版本时，请参阅 **[Windows 便携版发布说明](docs/RELEASING.md)**。
+配置、当日记录和历史数据保存在：
 
-最简步骤：
+```text
+%APPDATA%\水分補給課\gokugoku-data.json
+```
+
+想从头测试时，请先完全退出应用，再删除这个文件。下次启动会重新进入首次设置。
+
+数据结构当前为 schema v3。升级旧数据时：
+
+- v1、v2 的数字小时会自动转换为分钟级 `HH:MM` 字符串，例如 `9` → `09:00`。
+- 迁移前分别保留 `gokugoku-data.v1.bak.json` 或 `gokugoku-data.v2.bak.json`。
+- 如果同名备份已存在且内容不同，旧备份不会被覆盖，当前原始数据会保存为编号备份。
+- 无法安全备份或写入时，应用会停止覆盖原文件并显示错误。
+
+这些饮水目标只是日常参考，不构成医疗建议。天气、运动、饮食、药物和健康状况都可能影响实际饮水需要。
+
+## 从源码运行
+
+环境要求：
+
+- Windows x64
+- Node.js `22.12` 或更高版本
+- npm
 
 ```powershell
-npm install
+git clone https://github.com/mosaic-dng/GokuGoku.git
+cd GokuGoku
+npm ci
 npm test
 npm start
 ```
 
-生成便携版：
+更完整的零基础说明见 [构建教程](docs/BUILDING.md)。
+
+## 测试与打包
 
 ```powershell
-npm run pack:win
-```
-
-成品位于 `dist/GokuGoku-win32-x64/`。请保留整个文件夹，不能只复制 `GokuGoku.exe`。
-
-### 数据与隐私
-
-数据保存在：
-
-```text
-%APPDATA%/水分補給課/gokugoku-data.json
-```
-
-从 v1.0 升级时，旧杯数按原来的 `250ml/杯` 估算迁移，并在同一目录保留 `gokugoku-data.v1.bak.json`。更改每次喝水量只影响之后的新打卡，不会改写已累计的毫升数。
-
-### 测试与项目结构
-
-```powershell
+# 运行 Node 测试
 npm test
+
+# 生成 Windows x64 便携目录
 npm run pack:win
+
+# 审计真实便携包的体积、语言包、ASAR 和运行文件
+npm run verify:win
 ```
+
+当前 v1.2.0 验收结果：
+
+- `66 / 66` 项自动化测试通过。
+- Electron 验收覆盖首次设置、两步设置、主界面、展开设置、喝水、撤销和提醒窗口。
+- 便携目录约 `301.90 MiB`。
+- 发布 ZIP 约 `126.06 MiB`。
+- 生产目录仅保留 `zh-CN.pak` 与 `en-US.pak`。
+- Chromium、GPU、D3D、Vulkan、ICU 与许可证文件均保留。
+
+维护者发布新版本前请阅读 [Windows 发布说明](docs/RELEASING.md)。
+
+## 项目结构
 
 ```text
-main.js             Electron 主进程、调度、托盘和 IPC
-preload.js          安全 IPC 桥
-lib/hydration.js    饮水目标、免扰和输入校验
-lib/data.js         数据迁移、打卡、重置和撤销
-lib/scheduler.js    可测试的提醒状态机
-ui/index.*          主面板、首次设置和完整设置
-ui/reminder.*       持续提醒与短时撤销
-test/*.test.js      Node 内置测试
-docs/BUILDING.md    零基础运行与打包教程
+main.js                     Electron 窗口、托盘、提醒调度与 IPC
+preload.js                  安全 IPC 桥
+lib/data.js                 schema v3、打卡、历史、重置与撤销
+lib/hydration.js            目标、分钟级课表、免打扰与输入校验
+lib/migration-backup.js     迁移前的冲突安全备份
+lib/scheduler.js            可独立测试的提醒状态机
+ui/index.*                  主窗口、首次设置与课内设置
+ui/reminder.*               提醒窗口、打字机与撤销交互
+scripts/pack-win.js         Windows 便携包构建与语言包裁剪
+scripts/verify-*.js         包体和 Electron 截图验收
+test/*.test.js              Node 内置测试
 ```
 
-### 说明
+Release 的标签、ZIP 命名和发布检查详见 [发布流程](docs/RELEASING.md)。
 
-饮水计算是简易日常参考，不构成医疗建议。天气、运动量、饮食及健康状况都会影响实际饮水需要。
-
----
-
-## English
-
-### What is GokuGoku?
-
-GokuGoku is a playful, Animal Crossing-inspired hydration reminder for Windows. “GokuGoku” (ゴクゴク) is a Japanese onomatopoeia for gulping down a drink.
-
-The app lives in the system tray and reminds you only during the working hours you allow. Hydration data stays on your computer, and the app itself makes no network requests. The current application interface is primarily in Simplified Chinese.
-
-### Features
-
-- **Personal setup** — configure body weight, cup size, reminder interval, and multiple daily quiet periods.
-- **Personalized targets** — estimate daily intake with `weight (kg) × 30 ml` and scale the workday target by working hours.
-- **Accurate tracking** — store intake in millilitres and recalculate the displayed cup target from the current cup size.
-- **Quiet-hour scheduling** — suppress reminders during lunch, meetings, off-hours, and non-working days.
-- **Persistent reminders** — wait for you to drink, snooze, or close the reminder during eligible hours.
-- **Drink and move** — optionally pair hydration reminders with a 1–2 minute movement break.
-- **Quick undo** — undo an accidental entry from the main window, tray, or reminder popup.
-- **System tray controls** — quickly log a drink, undo, mute for one hour, or quit.
-- **Local synthesized sounds** — generate effects with WebAudio or disable them in settings.
-
-### Getting started
-
-You can run the project directly from source or package it as a portable Windows x64 application. If command-line tools are new to you, follow the step-by-step guide:
-
-**[Beginner-friendly source and Windows packaging guide](docs/BUILDING.md#english)**
-
-Maintainers publishing a new version should follow the **[Windows release guide](docs/RELEASING.md)**.
-
-Quick start:
-
-```powershell
-npm install
-npm test
-npm start
-```
-
-Create the portable build:
-
-```powershell
-npm run pack:win
-```
-
-The output is placed in `dist/GokuGoku-win32-x64/`. Keep the entire folder together; `GokuGoku.exe` does not work as a standalone file.
-
-### Data and privacy
-
-Local data is stored at:
-
-```text
-%APPDATA%/水分補給課/gokugoku-data.json
-```
-
-When upgrading from v1.0, the app estimates previous entries using the original 250 ml cup size and keeps a `gokugoku-data.v1.bak.json` backup in the same directory. Changing the cup size affects future entries only.
-
-### Testing and project structure
-
-```powershell
-npm test
-npm run pack:win
-```
-
-```text
-main.js             Electron main process, scheduling, tray, and IPC
-preload.js          Secure IPC bridge
-lib/hydration.js    Targets, quiet hours, and input validation
-lib/data.js         Migration, drink records, reset, and undo
-lib/scheduler.js    Testable reminder state machine
-ui/index.*          Main panel, onboarding, and settings
-ui/reminder.*       Persistent reminder and short undo window
-test/*.test.js      Node built-in tests
-docs/BUILDING.md    Beginner-friendly run and packaging guide
-```
-
-### Disclaimer
-
-The hydration calculation is a simple everyday reference and is not medical advice. Weather, exercise, diet, medication, and health conditions can change individual needs.
-
----
-
-## 友情链接 / Friends
+## 友情链接
 
 - [LINUX DO](https://linux.do)
 
----
-
 ## License
 
-Released under the [MIT License](LICENSE).
+本项目使用 [MIT License](LICENSE)。
+
+---
+
+<details>
+<summary>English summary</summary>
+
+GokuGoku is a playful Windows hydration reminder that lives in the system tray. It supports minute-precise working hours, quiet periods, local-only drink tracking, undo, reduced motion, and a portable Windows x64 build.
+
+Download the latest build from [GitHub Releases](https://github.com/mosaic-dng/GokuGoku/releases/latest). Hydration estimates are general references and are not medical advice.
+
+</details>

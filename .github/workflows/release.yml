@@ -62,6 +62,24 @@ jobs:
       - name: Build Windows portable app
         run: npm run pack:win
 
+      - name: Verify portable package
+        run: npm run verify:win
+
+      - name: Verify packaged Electron flows
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path '.shots', '.shot-data' | Out-Null
+          $env:SHOT = '1'
+          $env:SHOT_DIR = (Resolve-Path '.shots').Path
+          $env:SHOT_DATA_DIR = (Resolve-Path '.shot-data').Path
+          $shotProcess = Start-Process `
+            -FilePath 'dist/GokuGoku-win32-x64/GokuGoku.exe' `
+            -PassThru -Wait -NoNewWindow
+          if ($shotProcess.ExitCode -ne 0) {
+            throw "Packaged Electron acceptance exited with $($shotProcess.ExitCode)."
+          }
+          npm run verify:shots
+
       - name: Prepare release asset
         id: asset
         shell: pwsh
@@ -85,7 +103,14 @@ jobs:
           $portableDir = Join-Path 'dist' $portableName
           $archivePath = Join-Path 'dist' "$portableName.zip"
           Move-Item -LiteralPath $sourceDir -Destination $portableDir
-          Compress-Archive -LiteralPath $portableDir -DestinationPath $archivePath -CompressionLevel Optimal
+          tar.exe -a -c -f $archivePath -C 'dist' $portableName
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Could not create the portable ZIP.'
+          }
+          $archiveSize = (Get-Item $archivePath).Length
+          if ($archiveSize -gt 128MB) {
+            throw "Portable ZIP exceeds 128 MiB: $archiveSize bytes."
+          }
           "path=$archivePath" >> $env:GITHUB_OUTPUT
 
       - name: Create GitHub Release

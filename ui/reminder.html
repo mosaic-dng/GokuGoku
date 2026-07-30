@@ -85,6 +85,19 @@
     filter: drop-shadow(0 4px 6px rgba(17,168,155,.3));
   }
   @keyframes bob { 0%,100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-7px) rotate(4deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+    }
+    .dialog, .dialog.in, .dialog.out, .deco, .cursor {
+      animation: none !important;
+      transform: none !important;
+    }
+    .dialog.in { opacity: 1; }
+    .dialog.out { opacity: 0; }
+  }
 </style>
 </head>
 <body>

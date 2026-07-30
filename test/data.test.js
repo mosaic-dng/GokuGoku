@@ -15,11 +15,13 @@ const {
 test('new database starts with the recommended 200ml cup and lunch DND', () => {
   const db = createDefaultDatabase('2026-07-27');
 
-  assert.equal(db.schemaVersion, 2);
+  assert.equal(db.schemaVersion, 3);
   assert.equal(db.profileCompleted, false);
   assert.equal(db.settings.cupMl, 200);
   assert.equal(db.settings.intervalMin, 45);
   assert.equal(db.settings.intervalMode, 'manual');
+  assert.equal(db.settings.workStart, '09:00');
+  assert.equal(db.settings.workEnd, '18:00');
   assert.deepEqual(db.settings.dndRanges, [{ start: '12:00', end: '13:00' }]);
   assert.equal(db.consumedMl, 0);
 });
@@ -40,6 +42,10 @@ test('legacy automatic interval becomes manual without changing its saved minute
 
   assert.equal(result.db.settings.intervalMin, 75);
   assert.equal(result.db.settings.intervalMode, 'manual');
+  assert.equal(result.migratedFromVersion, 2);
+  assert.equal(result.db.schemaVersion, 3);
+  assert.equal(result.db.settings.workStart, '09:00');
+  assert.equal(result.db.settings.workEnd, '18:00');
 });
 
 test('v1 cups and history migrate using the old 250ml cup size', () => {
@@ -51,7 +57,7 @@ test('v1 cups and history migrate using the old 250ml cup size', () => {
     history: { '2026-07-25': 4 },
   }, '2026-07-26');
 
-  assert.equal(result.migratedFromV1, true);
+  assert.equal(result.migratedFromVersion, 1);
   assert.equal(result.db.drinkCount, 3);
   assert.equal(result.db.consumedMl, 750);
   assert.equal(result.db.settings.intervalMin, 60);
@@ -63,10 +69,48 @@ test('v1 cups and history migrate using the old 250ml cup size', () => {
   });
 });
 
+test('v2 work hours migrate to minute-precise clock strings', () => {
+  const result = migrateDatabase({
+    schemaVersion: 2,
+    profileCompleted: true,
+    settings: {
+      weightKg: 60,
+      cupMl: 200,
+      intervalMin: 45,
+      workStart: 9.5,
+      workEnd: 18,
+      dndRanges: [],
+    },
+  }, '2026-07-27');
+
+  assert.equal(result.migratedFromVersion, 2);
+  assert.equal(result.db.settings.workStart, '09:30');
+  assert.equal(result.db.settings.workEnd, '18:00');
+});
+
+test('v3 clock strings are preserved without reporting a migration', () => {
+  const result = migrateDatabase({
+    schemaVersion: 3,
+    profileCompleted: true,
+    settings: {
+      weightKg: 60,
+      cupMl: 200,
+      intervalMin: 45,
+      workStart: '09:15',
+      workEnd: '18:45',
+      dndRanges: [],
+    },
+  }, '2026-07-27');
+
+  assert.equal(result.migratedFromVersion, null);
+  assert.equal(result.db.settings.workStart, '09:15');
+  assert.equal(result.db.settings.workEnd, '18:45');
+});
+
 test('future database schemas are rejected instead of being treated as v1', () => {
   assert.throws(
     () => migrateDatabase({
-      schemaVersion: 3,
+      schemaVersion: 4,
       profileCompleted: true,
       drinkCount: 5,
       consumedMl: 1000,

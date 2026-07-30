@@ -6,6 +6,7 @@ const assert = require('node:assert/strict');
 const {
   calculateTargets,
   getReminderAvailability,
+  validateWorkHours,
   validateIntervalMin,
   validateProfileInput,
   validateDndRanges,
@@ -15,8 +16,8 @@ test('60kg over an 8 hour workday produces 1800ml daily and 900ml at work', () =
   const result = calculateTargets({
     weightKg: 60,
     cupMl: 200,
-    workStart: 9,
-    workEnd: 17,
+    workStart: '09:15',
+    workEnd: '17:15',
     consumedMl: 0,
     drinkCount: 0,
   });
@@ -30,15 +31,15 @@ test('work target is rounded to 50ml and clamped to 800-1200ml', () => {
   assert.equal(calculateTargets({
     weightKg: 30,
     cupMl: 200,
-    workStart: 9,
-    workEnd: 17,
+    workStart: '09:00',
+    workEnd: '17:00',
   }).workGoalMl, 800);
 
   assert.equal(calculateTargets({
     weightKg: 200,
     cupMl: 200,
-    workStart: 9,
-    workEnd: 18,
+    workStart: '09:00',
+    workEnd: '18:00',
   }).workGoalMl, 1200);
 });
 
@@ -46,8 +47,8 @@ test('target cups are recalculated from the reference goal and current cup capac
   const result = calculateTargets({
     weightKg: 60,
     cupMl: 300,
-    workStart: 9,
-    workEnd: 17,
+    workStart: '09:00',
+    workEnd: '17:00',
     consumedMl: 400,
     drinkCount: 2,
   });
@@ -60,8 +61,8 @@ test('drinking beyond the goal does not increase the target denominator', () => 
   const result = calculateTargets({
     weightKg: 60,
     cupMl: 200,
-    workStart: 9,
-    workEnd: 17,
+    workStart: '09:00',
+    workEnd: '17:00',
     consumedMl: 1400,
     drinkCount: 7,
   });
@@ -86,12 +87,16 @@ test('profile validation rejects non-finite weight and cup values', () => {
     weightKg: Number.NaN,
     cupMl: 200,
     intervalMin: 45,
+    workStart: '09:00',
+    workEnd: '18:00',
     dndRanges: [],
   }).ok, false);
   assert.equal(validateProfileInput({
     weightKg: 60,
     cupMl: Number.POSITIVE_INFINITY,
     intervalMin: 45,
+    workStart: '09:00',
+    workEnd: '18:00',
     dndRanges: [],
   }).ok, false);
 });
@@ -113,18 +118,41 @@ test('profile validation returns the manual reminder interval', () => {
     weightKg: 60,
     cupMl: 250,
     intervalMin: 75,
+    workStart: '09:15',
+    workEnd: '18:45',
     dndRanges: [],
   });
 
   assert.equal(result.ok, true);
   assert.equal(result.profile.intervalMin, 75);
+  assert.equal(result.profile.workStart, '09:15');
+  assert.equal(result.profile.workEnd, '18:45');
+});
+
+test('work hours require valid same-day minute clocks', () => {
+  assert.deepEqual(validateWorkHours('09:15', '18:45'), {
+    ok: true,
+    workStart: '09:15',
+    workEnd: '18:45',
+  });
+
+  for (const [start, end] of [
+    ['18:00', '09:00'],
+    ['09:00', '09:00'],
+    ['9:00', '18:00'],
+    ['09:60', '18:00'],
+  ]) {
+    const result = validateWorkHours(start, end);
+    assert.equal(result.ok, false);
+    assert.match(result.error, /结束时间必须晚于开始时间|HH:MM/);
+  }
 });
 
 test('availability defers reminders to the end of DND', () => {
   const now = new Date(2026, 6, 27, 12, 30, 0, 0);
   const result = getReminderAvailability(now, {
-    workStart: 9,
-    workEnd: 18,
+    workStart: '09:00',
+    workEnd: '18:00',
     weekend: false,
     dndRanges: [{ start: '12:00', end: '13:00' }],
   });
@@ -137,13 +165,27 @@ test('availability defers reminders to the end of DND', () => {
 test('availability moves an after-hours Friday reminder to Monday morning', () => {
   const friday = new Date(2026, 6, 31, 19, 0, 0, 0);
   const result = getReminderAvailability(friday, {
-    workStart: 9,
-    workEnd: 18,
+    workStart: '09:15',
+    workEnd: '18:45',
     weekend: false,
     dndRanges: [],
   });
 
   assert.equal(result.allowed, false);
   assert.equal(result.reason, 'after');
-  assert.equal(result.resumeAt.getTime(), new Date(2026, 7, 3, 9, 0, 0, 0).getTime());
+  assert.equal(result.resumeAt.getTime(), new Date(2026, 7, 3, 9, 15, 0, 0).getTime());
+});
+
+test('availability honors exact work-minute boundaries', () => {
+  const settings = {
+    workStart: '09:15',
+    workEnd: '18:45',
+    weekend: false,
+    dndRanges: [],
+  };
+
+  assert.equal(getReminderAvailability(new Date(2026, 6, 27, 9, 14), settings).reason, 'before');
+  assert.equal(getReminderAvailability(new Date(2026, 6, 27, 9, 15), settings).allowed, true);
+  assert.equal(getReminderAvailability(new Date(2026, 6, 27, 18, 44), settings).allowed, true);
+  assert.equal(getReminderAvailability(new Date(2026, 6, 27, 18, 45), settings).reason, 'after');
 });

@@ -6,8 +6,8 @@ const assert = require('node:assert/strict');
 const { decideTick } = require('../lib/scheduler.js');
 
 const settings = {
-  workStart: 9,
-  workEnd: 18,
+  workStart: '09:15',
+  workEnd: '18:45',
   weekend: false,
   dndRanges: [{ start: '12:00', end: '13:00' }],
 };
@@ -66,17 +66,24 @@ test('waking after an entire DND still replaces the stale visible reminder', () 
 });
 
 test('work end hides a visible reminder and clears its timer', () => {
-  const result = tickAt(18, 0, { reminderVisible: true, nextAt: null });
+  const result = tickAt(18, 45, { reminderVisible: true, nextAt: null });
 
   assert.equal(result.hideReminder, true);
   assert.equal(result.nextAt, null);
 });
 
 test('first tick in an eligible work period schedules a full interval', () => {
-  const result = tickAt(9, 0, { nextAt: null });
+  const result = tickAt(9, 15, { nextAt: null });
 
   assert.equal(result.fireReminder, false);
-  assert.equal(result.nextAt, new Date(2026, 6, 27, 9, 45, 0, 0).getTime());
+  assert.equal(result.nextAt, new Date(2026, 6, 27, 10, 0, 0, 0).getTime());
+});
+
+test('a reminder is suppressed at the exact minute work ends', () => {
+  const result = tickAt(18, 45);
+
+  assert.equal(result.fireReminder, false);
+  assert.equal(result.nextAt, null);
 });
 
 test('pause and completed profile suppress and hide reminders', () => {

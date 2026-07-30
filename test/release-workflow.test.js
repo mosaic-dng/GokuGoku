@@ -26,7 +26,9 @@ test('CI validates tests and the Windows portable build', () => {
   assert.match(workflow, /run:\s*npm ci/);
   assert.match(workflow, /run:\s*npm test/);
   assert.match(workflow, /run:\s*npm run pack:win/);
-  assert.match(workflow, /Test-Path ['"]dist\/GokuGoku-win32-x64\/GokuGoku\.exe['"]/);
+  assert.match(workflow, /run:\s*npm run verify:win/);
+  assert.match(workflow, /-FilePath ['"]dist\/GokuGoku-win32-x64\/GokuGoku\.exe['"]/);
+  assert.match(workflow, /npm run verify:shots/);
 });
 
 test('release workflow validates a stable main-branch tag and publishes one portable ZIP', () => {
@@ -47,9 +49,12 @@ test('release workflow validates a stable main-branch tag and publishes one port
   assert.match(workflow, /run:\s*npm ci/);
   assert.match(workflow, /run:\s*npm test/);
   assert.match(workflow, /run:\s*npm run pack:win/);
+  assert.match(workflow, /run:\s*npm run verify:win/);
+  assert.match(workflow, /npm run verify:shots/);
   assert.match(workflow, /VersionInfo\.ProductVersion/);
   assert.match(workflow, /GokuGoku-v\$version-Windows-x64/);
-  assert.match(workflow, /Compress-Archive/);
+  assert.match(workflow, /tar\.exe -a -c -f/);
+  assert.match(workflow, /\$archiveSize -gt 128MB/);
   assert.match(workflow, /gh release create/);
   assert.match(workflow, /--verify-tag/);
   assert.match(workflow, /--generate-notes/);

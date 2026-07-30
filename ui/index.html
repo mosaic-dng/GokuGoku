@@ -34,10 +34,23 @@
   .stats .label { font-size: 18px; font-weight: 800; color: var(--ink); letter-spacing: 0.04em; }
   .stats .count { font-size: 17px; color: var(--sub); font-weight: 700; text-align: right; }
   .stats .count b { font-size: 30px; color: var(--mint-lo); font-weight: 900; margin-right: 3px; }
-  .cups { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; min-height: 38px; }
+  .cups { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 6px; min-height: 38px; }
   .cups svg { transition: transform 0.25s var(--ease); }
   .cups svg.pop { animation: cuppop 0.45s var(--ease); }
   @keyframes cuppop { 0% { transform: scale(0.4); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
+  .progress-track {
+    height: 8px; margin: 0; overflow: hidden;
+    border-radius: 999px; background: var(--panel-2);
+  }
+  .progress-fill {
+    width: 0; height: 100%; border-radius: inherit; background: var(--mint);
+    transition: width .3s var(--ease);
+  }
+  .count-bump { animation: countBump .38s var(--ease); }
+  @keyframes countBump {
+    0%, 100% { transform: scale(1); }
+    45% { transform: scale(1.12); }
+  }
   .timerline {
     display: flex; align-items: center; gap: 8px;
     padding-top: 13px; border-top: 2px dashed var(--panel-2);
@@ -73,6 +86,7 @@
   .field .fname { font-size: 15px; font-weight: 800; color: var(--text); flex: none; }
   .field-tools { display: flex; align-items: center; gap: 7px; }
   .worktime { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sub); }
+  .worktime input { width: 128px; }
   .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .mini-label { display: grid; gap: 6px; font-size: 12px; color: var(--sub); font-weight: 800; }
   .mini-label.full { grid-column: 1 / -1; }
@@ -135,7 +149,7 @@
 
   .setup-overlay {
     position: absolute; inset: 64px 0 0; z-index: 20; display: none;
-    padding: 16px 24px 22px; overflow-y: auto;
+    padding: 16px 24px 22px; overflow: hidden;
     background:
       linear-gradient(rgba(248,248,240,.95), rgba(248,248,240,.98)),
       radial-gradient(circle, rgba(25,200,185,.17) 3px, transparent 3px);
@@ -144,7 +158,7 @@
   .setup-overlay.show { display: block; animation: setupIn .35s var(--ease); }
   @keyframes setupIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
   .setup-card {
-    position: relative; padding: 27px 24px 22px; overflow: hidden;
+    position: relative; height: 100%; padding: 23px 24px 18px; overflow: hidden;
     border: 2px solid #decf9e; border-radius: 28px; background: #fff9df;
     box-shadow: 0 8px 22px rgba(121,79,39,.18);
   }
@@ -153,11 +167,16 @@
     width: 112px; padding: 4px 0; transform: rotate(38deg);
     background: var(--mint); color: white; text-align: center; font-size: 10px; font-weight: 900; letter-spacing: 3px;
   }
-  .setup-card h1 { margin: 6px 0 16px; color: var(--ink); font-size: 28px; line-height: 1.22; }
-  .setup-section { margin-top: 17px; }
+  .setup-card h1 { margin: 3px 0 14px; color: var(--ink); font-size: 28px; line-height: 1.22; }
+  .setup-pane { transition: opacity .28s var(--ease), transform .28s var(--ease); }
+  .setup-finish-pane { margin-top: 14px; }
+  .setup-work { margin-top: 14px; }
+  .setup-work h2 { margin-bottom: 9px; color: var(--ink); font-size: 15px; }
+  .setup-work .worktime input { flex: 1; width: auto; }
+  .setup-section { margin-top: 0; }
   .setup-section h2 { margin-bottom: 10px; color: var(--ink); font-size: 15px; }
   .setup-preview {
-    display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; margin: 16px 0;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin: 16px 0;
   }
   .setup-preview div {
     padding: 12px 9px; border: 2px solid #e8dba8; border-radius: 16px; background: #fffdf4;
@@ -165,7 +184,52 @@
   }
   .setup-preview b { display: block; margin-top: 3px; color: var(--mint-lo); font-size: 18px; }
   .setup-submit { width: 100%; height: 58px; margin-top: 5px; font-size: 18px; }
+  .setup-step-label, .setup-next, .setup-back { display: none; }
+  .setup-actions { display: grid; grid-template-columns: 1fr; gap: 10px; }
   .disclaimer { margin: 12px 3px 0; color: var(--faint); font-size: 11px; line-height: 1.55; text-align: center; font-weight: 700; }
+
+  .setup-overlay.compact { padding: 12px 24px 16px; }
+  .setup-overlay.compact .setup-card { padding-top: 20px; }
+  .setup-overlay.compact .setup-step-label {
+    display: block; margin: -3px 0 12px; color: var(--mint-lo);
+    font-size: 12px; font-weight: 900; letter-spacing: .08em;
+  }
+  .setup-overlay.compact .setup-pane { display: none; }
+  .setup-overlay.compact .setup-card[data-step="1"] .setup-profile-pane,
+  .setup-overlay.compact .setup-card[data-step="2"] .setup-finish-pane { display: block; }
+  .setup-overlay.compact .setup-finish-pane { margin-top: 0; }
+  .setup-overlay.compact .setup-next,
+  .setup-overlay.compact .setup-back { display: inline-flex; }
+  .setup-overlay.compact .setup-next { width: 100%; height: 56px; margin-top: 18px; font-size: 17px; }
+  .setup-overlay.compact .setup-actions { grid-template-columns: 108px 1fr; }
+  .setup-overlay.compact .setup-back { height: 58px; margin-top: 5px; }
+  .setup-overlay.compact .setup-card[data-step="1"] .disclaimer { display: none; }
+
+  .ui-ready .content > * { animation: contentIn .32s var(--ease) both; }
+  .ui-ready .content > *:nth-child(2) { animation-delay: .08s; }
+  .ui-ready .content > *:nth-child(3) { animation-delay: .16s; }
+  .ui-ready .content > *:nth-child(4) { animation-delay: .24s; }
+  .setup-overlay.show .setup-card h1,
+  .setup-overlay.show .setup-profile-pane,
+  .setup-overlay.show .setup-finish-pane,
+  .setup-overlay.show .disclaimer { animation: contentIn .32s var(--ease) both; }
+  .setup-overlay.show .setup-profile-pane { animation-delay: .08s; }
+  .setup-overlay.show .setup-finish-pane { animation-delay: .16s; }
+  .setup-overlay.show .disclaimer { animation-delay: .24s; }
+  @keyframes contentIn {
+    from { opacity: 0; transform: translateY(9px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+    }
+    #mascot, .dotpulse { animation: none !important; }
+    .ui-ready .content > *, .setup-overlay.show * { transform: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -224,6 +288,9 @@
         <div class="count"><b id="cupNum">0</b>/<span id="goalNum">5</span> 杯</div>
       </div>
       <div class="cups" id="cups"></div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressBar" role="progressbar" aria-label="今日饮水进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+      </div>
       <div class="timerline">
         <div class="dotpulse" id="pulse"></div>
         <span id="timerLabel">距离下次催水还有</span><b id="timerVal"></b>
@@ -260,7 +327,7 @@
 
           <div class="field">
             <div class="fname">上班时间</div>
-            <div class="worktime"><select id="selStart" aria-label="上班开始时间"></select><span>—</span><select id="selEnd" aria-label="上班结束时间"></select></div>
+            <div class="worktime"><input id="selStart" type="time" step="60" aria-label="上班开始时间"><span>—</span><input id="selEnd" type="time" step="60" aria-label="上班结束时间"></div>
           </div>
 
           <div class="field col">
@@ -303,29 +370,47 @@
   <div id="toast"><span id="toastText"></span><button id="toastAction">撤销</button></div>
 
   <section class="setup-overlay" id="onboarding" aria-modal="true">
-    <div class="setup-card">
+    <div class="setup-card" data-step="1">
       <h1>先量身定做一份<br>喝水课表吧</h1>
+      <div class="setup-step-label" id="setupStepLabel">第 1 步 · 个人课表</div>
 
-      <div class="profile-grid">
-        <label class="mini-label">你的体重（kg）<input id="setupWeight" type="number" inputmode="decimal" min="30" max="300" step="0.1" value="60"></label>
-        <label class="mini-label">每次喝水量（ml）<input id="setupCup" type="number" inputmode="numeric" min="50" max="1000" step="10" value="200"></label>
-        <label class="mini-label full">催水间隔（分钟）<input id="setupInterval" type="number" inputmode="numeric" min="1" max="1440" step="1" value="45"></label>
+      <div class="setup-pane setup-profile-pane" data-step="1">
+        <div class="profile-grid">
+          <label class="mini-label">你的体重（kg）<input id="setupWeight" type="number" inputmode="decimal" min="30" max="300" step="0.1" value="60"></label>
+          <label class="mini-label">每次喝水量（ml）<input id="setupCup" type="number" inputmode="numeric" min="50" max="1000" step="10" value="200"></label>
+          <label class="mini-label full">催水间隔（分钟）<input id="setupInterval" type="number" inputmode="numeric" min="1" max="1440" step="1" value="45"></label>
+        </div>
+        <div class="setup-work">
+          <h2>🕘 上下班时间</h2>
+          <div class="worktime">
+            <input id="setupStart" type="time" step="60" value="09:00" aria-label="首次设置上班开始时间">
+            <span>—</span>
+            <input id="setupEnd" type="time" step="60" value="18:00" aria-label="首次设置上班结束时间">
+          </div>
+        </div>
+        <div class="inline-error" id="setupProfileError"></div>
+        <button class="btn btn-primary setup-next" id="setupNext">下一步</button>
       </div>
 
-      <div class="setup-section">
-        <h2>🔕 午休或会议免打扰</h2>
-        <div class="dnd-list" id="setupDnd"></div>
-        <button class="add-range" id="setupAddDnd">＋ 再加一个时段</button>
-      </div>
+      <div class="setup-pane setup-finish-pane" data-step="2">
+        <div class="setup-section">
+          <h2>🔕 午休或会议免打扰</h2>
+          <div class="dnd-list" id="setupDnd"></div>
+          <button class="add-range" id="setupAddDnd">＋ 再加一个时段</button>
+        </div>
 
-      <div class="setup-preview">
-        <div>全天参考<b id="previewDaily">1800ml</b></div>
-        <div>上班目标<b id="previewWork">1000ml</b></div>
-        <div>计划杯数<b id="previewCups">5杯</b></div>
-        <div>催水间隔<b id="previewInterval">45分钟</b></div>
+        <div class="setup-preview">
+          <div>全天参考<b id="previewDaily">1800ml</b></div>
+          <div>上班目标<b id="previewWork">1000ml</b></div>
+          <div>计划杯数<b id="previewCups">5杯</b></div>
+          <div>催水间隔<b id="previewInterval">45分钟</b></div>
+        </div>
+        <div class="inline-error" id="setupError"></div>
+        <div class="setup-actions">
+          <button class="btn btn-ghost setup-back" id="setupBack">上一步</button>
+          <button class="btn btn-primary setup-submit" id="setupSubmit">保存课表，开始补水</button>
+        </div>
       </div>
-      <div class="inline-error" id="setupError"></div>
-      <button class="btn btn-primary setup-submit" id="setupSubmit">保存课表，开始补水</button>
       <div class="disclaimer">体重 × 30ml 为简易参考公式；天气、运动量及健康状况会影响实际需要。</div>
     </div>
   </section>

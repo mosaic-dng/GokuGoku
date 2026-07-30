@@ -2,6 +2,7 @@
 'use strict';
 
 const $ = (selector) => document.querySelector(selector);
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 let typingTimer = null;
 let startTimer = null;
@@ -19,6 +20,12 @@ function clearTimers() {
 
 function typewriter(text, done) {
   clearInterval(typingTimer);
+  if (reducedMotion.matches) {
+    $('#txt').textContent = text;
+    $('#cursor').style.display = 'none';
+    if (done) done();
+    return;
+  }
   $('#txt').textContent = '';
   $('#cursor').style.display = '';
   let index = 0;
@@ -61,7 +68,7 @@ function show(payload) {
       $('#meta').classList.add('show');
       $('#btns').classList.add('show');
     });
-  }, 380);
+  }, reducedMotion.matches ? 0 : 380);
 }
 
 function finishClose(delay = 320) {
@@ -69,7 +76,7 @@ function finishClose(delay = 320) {
   clearTimers();
   $('#dialog').classList.remove('in');
   $('#dialog').classList.add('out');
-  setTimeout(() => window.api.reminderDone(), delay);
+  setTimeout(() => window.api.reminderDone(), reducedMotion.matches ? 0 : delay);
 }
 
 async function act(action) {

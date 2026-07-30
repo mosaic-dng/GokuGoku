@@ -182,6 +182,12 @@ input {
 }
 input:hover { border-color: #a89878; }
 input:focus { border-color: var(--yellow); box-shadow: 0 2px 0 #d5b64f; }
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] { appearance: textfield; }
 
 /* ---------- 名牌标签（动森对话框名牌） ---------- */
 .nametag {

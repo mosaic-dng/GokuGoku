@@ -13,6 +13,7 @@ let setupRanges = [{ start: '12:00', end: '13:00' }];
 let settingsDraftReady = false;
 let setupDraftReady = false;
 let intervalDraftDirty = false;
+let setupStep = 1;
 
 /* ---------- 小杯子 ---------- */
 function cupSVG(filled) {
@@ -132,10 +133,38 @@ function validateProfileNumbers(weight, cup, interval) {
   return '';
 }
 
-function calculatePreview(weight, cup) {
+function renderProgress() {
+  const progress = $('#progressBar');
+  const percentage = Math.min(100, Math.max(0, Math.round(
+    S.workGoalMl ? S.consumedMl / S.workGoalMl * 100 : 0,
+  )));
+  progress.style.width = `${percentage}%`;
+  progress.setAttribute('aria-valuenow', String(percentage));
+}
+
+function showDrinkFeedback(previousCups) {
+  if (previousCups < 0 || S.drinkCount <= previousCups) return;
+  const count = $('#cupNum');
+  const mascot = $('#mascotBox');
+  count.classList.remove('count-bump');
+  mascot.classList.remove('boing');
+  void count.offsetWidth;
+  count.classList.add('count-bump');
+  mascot.classList.add('boing');
+}
+
+function validateWorkHours(workStart, workEnd) {
+  const start = parseClock(workStart);
+  const end = parseClock(workEnd);
+  if (start === null || end === null) return '上下班时间请使用 HH:MM 格式';
+  if (end <= start) return '结束时间必须晚于开始时间';
+  return '';
+}
+
+function calculatePreview(weight, cup, workStart, workEnd) {
   const dailyGoalMl = Math.round(Number(weight) * 30);
-  const workHours = Math.max(0, Number(S ? S.workEnd : 18) - Number(S ? S.workStart : 9));
-  const workGoalMl = Math.min(1200, Math.max(800, Math.round((dailyGoalMl * workHours / 16) / 50) * 50));
+  const workMinutes = Math.max(0, parseClock(workEnd) - parseClock(workStart));
+  const workGoalMl = Math.min(1200, Math.max(800, Math.round((dailyGoalMl * workMinutes / (16 * 60)) / 50) * 50));
   const targetCups = Math.ceil(workGoalMl / Number(cup));
   return { dailyGoalMl, workGoalMl, targetCups };
 }
@@ -148,10 +177,13 @@ function updateSetupPreview() {
   const weight = Number($('#setupWeight').value);
   const cup = Number($('#setupCup').value);
   const interval = Number($('#setupInterval').value);
+  const workStart = $('#setupStart').value;
+  const workEnd = $('#setupEnd').value;
   const numericError = validateProfileNumbers(weight, cup, interval);
-  $('#setupError').textContent = numericError || validateRanges(setupRanges);
-  if (numericError) return;
-  const preview = calculatePreview(weight, cup);
+  const workError = validateWorkHours(workStart, workEnd);
+  $('#setupError').textContent = numericError || workError || validateRanges(setupRanges);
+  if (numericError || workError) return;
+  const preview = calculatePreview(weight, cup, workStart, workEnd);
   $('#previewDaily').textContent = `${preview.dailyGoalMl}ml`;
   $('#previewWork').textContent = `${preview.workGoalMl}ml`;
   $('#previewCups').textContent = `${preview.targetCups}杯`;
@@ -167,10 +199,13 @@ function updateSettingsPreview() {
   const weight = Number($('#weightInput').value);
   const cup = Number($('#cupInput').value);
   const interval = Number($('#intervalInput').value);
+  const workStart = $('#selStart').value;
+  const workEnd = $('#selEnd').value;
   const numericError = validateProfileNumbers(weight, cup, interval);
-  $('#settingsError').textContent = numericError || validateRanges(settingsRanges);
-  if (numericError) return;
-  const preview = calculatePreview(weight, cup);
+  const workError = validateWorkHours(workStart, workEnd);
+  $('#settingsError').textContent = numericError || workError || validateRanges(settingsRanges);
+  if (numericError || workError) return;
+  const preview = calculatePreview(weight, cup, workStart, workEnd);
   $('#sumDaily').textContent = `${preview.dailyGoalMl}ml`;
   $('#sumWork').textContent = `${preview.workGoalMl}ml`;
   $('#sumCups').textContent = `${S.drinkCount}/${preview.targetCups}杯`;
@@ -217,11 +252,24 @@ function syncControlValue(control, value) {
   if (document.activeElement !== control && control.value !== nextValue) control.value = nextValue;
 }
 
-function buildSelects() {
-  for (let hour = 5; hour <= 12; hour += 1) $('#selStart').add(new Option(`${hour}:00`, hour));
-  for (let hour = 14; hour <= 23; hour += 1) $('#selEnd').add(new Option(`${hour}:00`, hour));
-  $('#selStart').addEventListener('change', () => window.api.setSetting('workStart', Number($('#selStart').value)));
-  $('#selEnd').addEventListener('change', () => window.api.setSetting('workEnd', Number($('#selEnd').value)));
+function setSetupStep(step) {
+  setupStep = step === 2 ? 2 : 1;
+  $('.setup-card').dataset.step = String(setupStep);
+  $('#setupStepLabel').textContent = setupStep === 1 ? '第 1 步 · 个人课表' : '第 2 步 · 免打扰与目标';
+}
+
+function applySetupMode() {
+  const compact = window.innerHeight < 800;
+  $('#onboarding').classList.toggle('compact', compact);
+  if (!compact) setSetupStep(1);
+}
+
+function addSetupRange() {
+  if (setupRanges.length >= 2) {
+    $('#setupError').textContent = '首次设置最多添加两个免打扰时段，更多时段可稍后在课内设定中添加。';
+    return;
+  }
+  addRange(setupRanges, $('#setupDnd'), updateSetupPreview);
 }
 
 function bindSwitch(selector, key) {
@@ -267,6 +315,8 @@ function populateSettingsDraft(profile) {
   $('#weightInput').value = profile.weightKg || 60;
   $('#cupInput').value = profile.cupMl || 200;
   $('#intervalInput').value = profile.intervalMin || 45;
+  $('#selStart').value = profile.workStart || '09:00';
+  $('#selEnd').value = profile.workEnd || '18:00';
   settingsRanges = (profile.dndRanges || []).map((range) => ({ ...range }));
   renderDndEditor($('#settingsDnd'), settingsRanges, updateSettingsPreview);
   settingsDraftReady = true;
@@ -280,6 +330,8 @@ function syncProfileDraft(state) {
     $('#setupWeight').value = state.weightKg || 60;
     $('#setupCup').value = state.cupMl || 200;
     $('#setupInterval').value = state.intervalMin || 45;
+    $('#setupStart').value = state.workStart || '09:00';
+    $('#setupEnd').value = state.workEnd || '18:00';
     setupRanges = state.dndRanges.map((range) => ({ ...range }));
     renderDndEditor($('#setupDnd'), setupRanges, updateSetupPreview);
     setupDraftReady = true;
@@ -303,13 +355,13 @@ function render(state) {
   $('#goalNum').textContent = S.targetCups;
   $('#drinkBtn').textContent = `喝了喝了！（+${S.cupMl}ml）`;
   renderCups();
+  renderProgress();
   renderTitle();
   renderFace();
   renderTimer();
+  showDrinkFeedback(previousCups);
 
   if (!intervalDraftDirty) syncControlValue($('#intervalInput'), S.intervalMin);
-  syncControlValue($('#selStart'), S.workStart);
-  syncControlValue($('#selEnd'), S.workEnd);
   $('#swSedentary').classList.toggle('on', S.sedentaryEnabled);
   $('#swWeekend').classList.toggle('on', S.weekend);
   $('#swSound').classList.toggle('on', S.sound);
@@ -331,15 +383,26 @@ async function submitProfile(mode) {
   const weight = Number($(setup ? '#setupWeight' : '#weightInput').value);
   const cup = Number($(setup ? '#setupCup' : '#cupInput').value);
   const interval = Number($(setup ? '#setupInterval' : '#intervalInput').value);
+  const workStart = $(setup ? '#setupStart' : '#selStart').value;
+  const workEnd = $(setup ? '#setupEnd' : '#selEnd').value;
   const ranges = setup ? setupRanges : settingsRanges;
   const errorNode = $(setup ? '#setupError' : '#settingsError');
-  const localError = validateProfileNumbers(weight, cup, interval) || validateRanges(ranges);
+  const localError = validateProfileNumbers(weight, cup, interval)
+    || validateWorkHours(workStart, workEnd)
+    || validateRanges(ranges);
   if (localError) {
     errorNode.textContent = localError;
     return;
   }
 
-  const result = await window.api.saveProfile({ weightKg: weight, cupMl: cup, intervalMin: interval, dndRanges: ranges });
+  const result = await window.api.saveProfile({
+    weightKg: weight,
+    cupMl: cup,
+    intervalMin: interval,
+    workStart,
+    workEnd,
+    dndRanges: ranges,
+  });
   if (!result.ok) {
     errorNode.textContent = result.error;
     return;
@@ -350,6 +413,8 @@ async function submitProfile(mode) {
       weightKg: weight,
       cupMl: cup,
       intervalMin: interval,
+      workStart,
+      workEnd,
       dndRanges: ranges,
     });
     Sound.fanfare();
@@ -383,7 +448,9 @@ async function saveManualInterval() {
 
 /* ---------- 事件 ---------- */
 window.addEventListener('DOMContentLoaded', () => {
-  buildSelects();
+  requestAnimationFrame(() => document.body.classList.add('ui-ready'));
+  applySetupMode();
+  window.addEventListener('resize', applySetupMode);
   bindSwitch('#swSedentary', 'sedentaryEnabled');
   bindSwitch('#swWeekend', 'weekend');
   bindSwitch('#swSound', 'sound');
@@ -427,8 +494,22 @@ window.addEventListener('DOMContentLoaded', () => {
   $('#setupWeight').addEventListener('input', updateSetupPreview);
   $('#setupCup').addEventListener('input', updateSetupPreview);
   $('#setupInterval').addEventListener('input', updateSetupPreview);
+  $('#setupStart').addEventListener('input', updateSetupPreview);
+  $('#setupEnd').addEventListener('input', updateSetupPreview);
+  $('#selStart').addEventListener('input', updateSettingsPreview);
+  $('#selEnd').addEventListener('input', updateSettingsPreview);
   $('#settingsAddDnd').addEventListener('click', () => addRange(settingsRanges, $('#settingsDnd'), updateSettingsPreview));
-  $('#setupAddDnd').addEventListener('click', () => addRange(setupRanges, $('#setupDnd'), updateSetupPreview));
+  $('#setupAddDnd').addEventListener('click', addSetupRange);
+  $('#setupNext').addEventListener('click', () => {
+    const error = validateProfileNumbers(
+      Number($('#setupWeight').value),
+      Number($('#setupCup').value),
+      Number($('#setupInterval').value),
+    ) || validateWorkHours($('#setupStart').value, $('#setupEnd').value);
+    $('#setupProfileError').textContent = error;
+    if (!error) setSetupStep(2);
+  });
+  $('#setupBack').addEventListener('click', () => setSetupStep(1));
   $('#saveProfileBtn').addEventListener('click', () => submitProfile('settings'));
   $('#resetTodayBtn').addEventListener('click', async () => {
     const confirmed = window.confirm('确认清空今天的饮水记录吗？此操作不能撤销。');

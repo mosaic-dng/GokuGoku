@@ -7,11 +7,13 @@ const path = require('path');
 const fs = require('fs');
 
 const COPY = require('./ui/copy.js');
+const { ensureMigrationBackup } = require('./lib/migration-backup.js');
 const {
   calculateTargets,
   getReminderAvailability,
   validateIntervalMin,
   validateProfileInput,
+  validateWorkHours,
 } = require('./lib/hydration.js');
 const {
   DEFAULT_SETTINGS,
@@ -25,6 +27,7 @@ const {
 const { decideTick } = require('./lib/scheduler.js');
 
 const IS_HIDDEN_LAUNCH = process.argv.includes('--hidden');
+if (process.env.SHOT) app.commandLine.appendSwitch('force-device-scale-factor', '1');
 if (process.env.SHOT_DATA_DIR) app.setPath('userData', path.resolve(process.env.SHOT_DATA_DIR));
 
 let mainWin = null;
@@ -47,8 +50,8 @@ function dataFile() {
   return path.join(app.getPath('userData'), 'gokugoku-data.json');
 }
 
-function backupFile() {
-  return path.join(app.getPath('userData'), 'gokugoku-data.v1.bak.json');
+function backupFile(version) {
+  return path.join(app.getPath('userData'), `gokugoku-data.v${version}.bak.json`);
 }
 
 function todayStr(d = new Date()) {
@@ -57,6 +60,7 @@ function todayStr(d = new Date()) {
 
 function load() {
   persistenceError = null;
+  let migratedFromVersion = null;
   if (!fs.existsSync(dataFile())) {
     db = createDefaultDatabase(todayStr());
     return;
@@ -66,13 +70,13 @@ function load() {
     const raw = JSON.parse(fs.readFileSync(dataFile(), 'utf8'));
     const result = migrateDatabase(raw, todayStr());
     db = result.db;
-    if (result.migratedFromV1) {
-      let backupReady = fs.existsSync(backupFile());
+    migratedFromVersion = result.migratedFromVersion;
+    if (result.migratedFromVersion) {
+      const migrationBackup = backupFile(result.migratedFromVersion);
+      let backupReady = false;
       try {
-        if (!backupReady) {
-          fs.copyFileSync(dataFile(), backupFile());
-          backupReady = true;
-        }
+        ensureMigrationBackup(dataFile(), migrationBackup);
+        backupReady = true;
       } catch { /* 下方阻止覆盖原数据 */ }
       if (!backupReady) {
         persistenceError = '旧版数据备份失败。请检查数据目录权限后重新启动，本课不会覆盖原文件。';
@@ -85,6 +89,7 @@ function load() {
 
   if (todayStr() !== db.date) rolloverDay(db, todayStr());
   if (!validProfile(db.settings)) db.profileCompleted = false;
+  if (migratedFromVersion && !persistenceError) writeDatabaseAtomic();
 }
 
 function save() {
@@ -297,12 +302,32 @@ function positionReminder() {
 }
 
 /* ---------- 窗口 ---------- */
+function mainWindowHeight(workArea, profileCompleted) {
+  return profileCompleted ? 720 : (
+    workArea.height >= 904 ? 880 : Math.max(640, Math.min(720, workArea.height))
+  );
+}
+
+function resizeMainWindow(targetHeight) {
+  if (!mainWin || mainWin.isDestroyed()) return;
+  const { workArea } = screen.getDisplayMatching(mainWin.getBounds());
+  const height = Math.min(targetHeight, workArea.height);
+  const [x, y] = mainWin.getPosition();
+  mainWin.setBounds({
+    x,
+    y: Math.max(workArea.y, Math.min(y, workArea.y + workArea.height - height)),
+    width: 480,
+    height,
+  }, true);
+}
+
 function createWindows() {
+  const { workArea } = screen.getPrimaryDisplay();
   mainWin = new BrowserWindow({
     width: 480,
-    height: 720,
+    height: mainWindowHeight(workArea, db.profileCompleted),
     minWidth: 480,
-    minHeight: 680,
+    minHeight: 640,
     frame: false,
     transparent: true,
     resizable: false,
@@ -528,6 +553,8 @@ function saveProfile(input) {
   db.settings.cupMl = validation.profile.cupMl;
   db.settings.intervalMin = validation.profile.intervalMin;
   db.settings.intervalMode = 'manual';
+  db.settings.workStart = validation.profile.workStart;
+  db.settings.workEnd = validation.profile.workEnd;
   db.settings.dndRanges = validation.profile.dndRanges;
   db.profileCompleted = true;
   nextAt = null;
@@ -539,6 +566,7 @@ function saveProfile(input) {
     return { ok: false, error: persistenceError };
   }
   if (isReminderVisible()) cancelVisibleReminder();
+  resizeMainWindow(720);
   return { ok: true, state: pushState({ rebuildMenu: true }) };
 }
 
@@ -558,10 +586,13 @@ function setSetting(key, value) {
     if (!validation.ok) return { ok: false, error: validation.error, ...snapshot() };
     db.settings.intervalMin = validation.intervalMin;
     db.settings.intervalMode = 'manual';
-  } else if (key === 'workStart' && Number(value) >= 5 && Number(value) <= 12) {
-    db.settings.workStart = Number(value);
-  } else if (key === 'workEnd' && Number(value) >= 14 && Number(value) <= 23) {
-    db.settings.workEnd = Number(value);
+  } else if (key === 'workStart' || key === 'workEnd') {
+    const candidateStart = key === 'workStart' ? value : db.settings.workStart;
+    const candidateEnd = key === 'workEnd' ? value : db.settings.workEnd;
+    const validation = validateWorkHours(candidateStart, candidateEnd);
+    if (!validation.ok) return { ok: false, error: validation.error, ...snapshot() };
+    db.settings.workStart = validation.workStart;
+    db.settings.workEnd = validation.workEnd;
   } else {
     return snapshot();
   }
@@ -646,6 +677,38 @@ async function advanceShotTicks() {
   }
 }
 
+async function assertSetupFits(label) {
+  const metrics = await mainWin.webContents.executeJavaScript(`(() => {
+    const overlay = document.getElementById('onboarding');
+    const card = overlay.querySelector('.setup-card');
+    return {
+      overlayFits: overlay.scrollHeight <= overlay.clientHeight,
+      cardFits: card.scrollHeight <= card.clientHeight,
+      overlayClient: overlay.clientHeight,
+      overlayScroll: overlay.scrollHeight,
+      cardClient: card.clientHeight,
+      cardScroll: card.scrollHeight,
+    };
+  })()`);
+  if (!metrics.overlayFits || !metrics.cardFits) {
+    throw new Error(`首次设置页面溢出（${label}）：${JSON.stringify(metrics)}`);
+  }
+}
+
+function setShotWindowSize(width, height) {
+  const { workArea } = screen.getPrimaryDisplay();
+  mainWin.setBounds({
+    x: Math.round(workArea.x + (workArea.width - width) / 2),
+    y: Math.round(workArea.y + (workArea.height - height) / 2),
+    width,
+    height,
+  }, false);
+  const [actualWidth, actualHeight] = mainWin.getSize();
+  if (actualWidth !== width || actualHeight !== height) {
+    throw new Error(`截图窗口尺寸错误：期望 ${width}x${height}，实际 ${actualWidth}x${actualHeight}`);
+  }
+}
+
 async function shotMode() {
   clearInterval(tickTimer);
   tickTimer = null;
@@ -654,10 +717,30 @@ async function shotMode() {
   }
   const out = process.env.SHOT_DIR || __dirname;
   db.profileCompleted = false;
+  setShotWindowSize(480, 880);
   pushState();
   mainWin.show();
   await new Promise((resolve) => setTimeout(resolve, 900));
-  fs.writeFileSync(path.join(out, 'shot-onboarding.png'), (await mainWin.webContents.capturePage()).toPNG());
+  await assertSetupFits('480x880 单页');
+  const onboarding880 = (await mainWin.webContents.capturePage()).toPNG();
+  fs.writeFileSync(path.join(out, 'shot-onboarding-880.png'), onboarding880);
+  fs.writeFileSync(path.join(out, 'shot-onboarding.png'), onboarding880);
+
+  setShotWindowSize(480, 720);
+  await new Promise((resolve) => setTimeout(resolve, 450));
+  await mainWin.webContents.executeJavaScript('setSetupStep(1); void 0;');
+  await assertSetupFits('480x720 第一步');
+  fs.writeFileSync(
+    path.join(out, 'shot-onboarding-720-step1.png'),
+    (await mainWin.webContents.capturePage()).toPNG(),
+  );
+  await mainWin.webContents.executeJavaScript("document.getElementById('setupNext').click(); void 0;");
+  await new Promise((resolve) => setTimeout(resolve, 350));
+  await assertSetupFits('480x720 第二步');
+  fs.writeFileSync(
+    path.join(out, 'shot-onboarding-720-step2.png'),
+    (await mainWin.webContents.capturePage()).toPNG(),
+  );
   await mainWin.webContents.executeJavaScript(`
     document.getElementById('setupWeight').value = '60';
     document.getElementById('setupCup').value = '200';
@@ -673,7 +756,7 @@ async function shotMode() {
     (() => {
       const control = document.getElementById('selStart');
       control.focus();
-      const draft = control.value === '10' ? '11' : '10';
+      const draft = control.value === '10:30' ? '11:15' : '10:30';
       control.value = draft;
       return draft;
     })()
@@ -691,7 +774,7 @@ async function shotMode() {
   await mainWin.webContents.executeJavaScript(`
     (() => {
       const control = document.getElementById('selStart');
-      control.value = String(${db.settings.workStart});
+      control.value = ${JSON.stringify(db.settings.workStart)};
       control.blur();
     })()
   `);
@@ -797,7 +880,13 @@ if (!gotLock) {
     setupIpc();
     tickTimer = setInterval(tick, 1000);
     tick();
-    if (process.env.SHOT) shotMode();
+    if (process.env.SHOT) {
+      shotMode().catch((error) => {
+        console.error(error);
+        app.__quitting = true;
+        app.exit(1);
+      });
+    }
   });
   app.on('window-all-closed', () => { /* 托盘常驻，不退出 */ });
   app.on('before-quit', () => {

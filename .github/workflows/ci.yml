@@ -32,9 +32,20 @@ jobs:
       - name: Build Windows portable app
         run: npm run pack:win
 
-      - name: Verify Windows executable
+      - name: Verify portable package
+        run: npm run verify:win
+
+      - name: Verify packaged Electron flows
         shell: pwsh
         run: |
-          if (-not (Test-Path 'dist/GokuGoku-win32-x64/GokuGoku.exe')) {
-            throw 'Windows portable build did not create GokuGoku.exe.'
+          New-Item -ItemType Directory -Force -Path '.shots', '.shot-data' | Out-Null
+          $env:SHOT = '1'
+          $env:SHOT_DIR = (Resolve-Path '.shots').Path
+          $env:SHOT_DATA_DIR = (Resolve-Path '.shot-data').Path
+          $shotProcess = Start-Process `
+            -FilePath 'dist/GokuGoku-win32-x64/GokuGoku.exe' `
+            -PassThru -Wait -NoNewWindow
+          if ($shotProcess.ExitCode -ne 0) {
+            throw "Packaged Electron acceptance exited with $($shotProcess.ExitCode)."
           }
+          npm run verify:shots
