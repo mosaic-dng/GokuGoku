@@ -119,6 +119,40 @@ test('future database schemas are rejected instead of being treated as v1', () =
   );
 });
 
+test('migration sanitizes corrupted progress and history values', () => {
+  const result = migrateDatabase({
+    schemaVersion: 3,
+    profileCompleted: 'yes',
+    settings: {
+      weightKg: 60,
+      cupMl: 200,
+      intervalMin: 45,
+      workStart: '09:00',
+      workEnd: '18:00',
+      dndRanges: [],
+    },
+    date: 'not-a-date',
+    drinkCount: 'not-a-number',
+    consumedMl: 'Infinity',
+    lastDrinkAt: 'broken',
+    history: {
+      '2026-07-26': { drinkCount: '3.9', consumedMl: 'not-a-number', estimated: 'yes' },
+      '2026-07-25': { drinkCount: -2, consumedMl: -50, estimated: true },
+      'not-a-date': { drinkCount: 9, consumedMl: 1800 },
+    },
+  }, '2026-07-27');
+
+  assert.equal(result.db.profileCompleted, false);
+  assert.equal(result.db.date, '2026-07-27');
+  assert.equal(result.db.drinkCount, 0);
+  assert.equal(result.db.consumedMl, 0);
+  assert.equal(result.db.lastDrinkAt, null);
+  assert.deepEqual(result.db.history, {
+    '2026-07-26': { drinkCount: 3, consumedMl: 0 },
+    '2026-07-25': { drinkCount: 0, consumedMl: 0, estimated: true },
+  });
+});
+
 test('recording a drink uses the current cup capacity and returns exact undo data', () => {
   const db = createDefaultDatabase('2026-07-27');
   db.settings.cupMl = 300;

@@ -213,29 +213,43 @@ function updateSettingsPreview() {
 
 /* ---------- 免打扰编辑器 ---------- */
 function renderDndEditor(container, ranges, onChange) {
-  container.innerHTML = '';
+  container.replaceChildren();
   ranges.forEach((range, index) => {
     const row = document.createElement('div');
     row.className = 'dnd-row';
-    row.innerHTML = `
-      <input type="time" step="900" aria-label="免打扰开始" value="${range.start}">
-      <span>—</span>
-      <input type="time" step="900" aria-label="免打扰结束" value="${range.end}">
-      <button class="remove-range" title="删除这一段">×</button>`;
-    const inputs = row.querySelectorAll('input');
-    inputs[0].addEventListener('input', () => {
-      ranges[index].start = inputs[0].value;
+    const startInput = document.createElement('input');
+    startInput.type = 'time';
+    startInput.step = '900';
+    startInput.setAttribute('aria-label', '免打扰开始');
+    startInput.value = range.start;
+    const separator = document.createElement('span');
+    separator.textContent = '—';
+    const endInput = document.createElement('input');
+    endInput.type = 'time';
+    endInput.step = '900';
+    endInput.setAttribute('aria-label', '免打扰结束');
+    endInput.value = range.end;
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.className = 'remove-range';
+    removeButton.title = '删除这一段';
+    removeButton.setAttribute('aria-label', '删除这一段免打扰时段');
+    removeButton.textContent = '×';
+
+    startInput.addEventListener('input', () => {
+      ranges[index].start = startInput.value;
       onChange();
     });
-    inputs[1].addEventListener('input', () => {
-      ranges[index].end = inputs[1].value;
+    endInput.addEventListener('input', () => {
+      ranges[index].end = endInput.value;
       onChange();
     });
-    row.querySelector('button').addEventListener('click', () => {
+    removeButton.addEventListener('click', () => {
       ranges.splice(index, 1);
       renderDndEditor(container, ranges, onChange);
       onChange();
     });
+    row.append(startInput, separator, endInput, removeButton);
     container.appendChild(row);
   });
 }
@@ -273,10 +287,17 @@ function addSetupRange() {
 }
 
 function bindSwitch(selector, key) {
-  $(selector).addEventListener('click', () => {
+  const control = $(selector);
+  control.addEventListener('click', () => {
     Sound.click();
-    window.api.setSetting(key, !$(selector).classList.contains('on'));
+    window.api.setSetting(key, !control.classList.contains('on'));
   });
+}
+
+function syncSwitch(selector, enabled) {
+  const control = $(selector);
+  control.classList.toggle('on', !!enabled);
+  control.setAttribute('aria-pressed', String(!!enabled));
 }
 
 /* ---------- Toast 与撤销 ---------- */
@@ -362,10 +383,10 @@ function render(state) {
   showDrinkFeedback(previousCups);
 
   if (!intervalDraftDirty) syncControlValue($('#intervalInput'), S.intervalMin);
-  $('#swSedentary').classList.toggle('on', S.sedentaryEnabled);
-  $('#swWeekend').classList.toggle('on', S.weekend);
-  $('#swSound').classList.toggle('on', S.sound);
-  $('#swAuto').classList.toggle('on', S.autoLaunch);
+  syncSwitch('#swSedentary', S.sedentaryEnabled);
+  syncSwitch('#swWeekend', S.weekend);
+  syncSwitch('#swSound', S.sound);
+  syncSwitch('#swAuto', S.autoLaunch);
   updateSetupPreview();
   updateSettingsPreview();
 
