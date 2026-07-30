@@ -13,6 +13,7 @@ const {
   createPackagerOptions,
   pruneLocales,
 } = require('../scripts/pack-win.js');
+const { verifyShots } = require('../scripts/verify-shots.js');
 
 test('Windows packaging keeps only Chinese and English locale packs', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gokugoku-locales-'));
@@ -120,4 +121,36 @@ test('portable verifier audits size, runtime files, locales, and ASAR exclusions
   assert.match(shotVerifier, /'shot-onboarding-880\.png': \[480, 880\]/);
   assert.match(shotVerifier, /'shot-onboarding-720-step1\.png': \[480, 720\]/);
   assert.match(shotVerifier, /'shot-reminder\.png': \[520, 380\]/);
+});
+
+test('screenshot verifier accepts settings height constrained by the runner work area', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gokugoku-shots-'));
+  const dimensions = {
+    'shot-onboarding-880.png': [480, 880],
+    'shot-onboarding-720-step1.png': [480, 720],
+    'shot-onboarding-720-step2.png': [480, 720],
+    'shot-main.png': [480, 720],
+    'shot-undo.png': [480, 720],
+    'shot-main-open.png': [480, 696],
+    'shot-settings-bottom.png': [480, 696],
+    'shot-reminder.png': [520, 380],
+  };
+
+  try {
+    for (const [name, [width, height]] of Object.entries(dimensions)) {
+      const header = Buffer.alloc(24);
+      Buffer.from('89504e470d0a1a0a', 'hex').copy(header);
+      header.writeUInt32BE(width, 16);
+      header.writeUInt32BE(height, 20);
+      fs.writeFileSync(path.join(root, name), header);
+    }
+
+    assert.doesNotThrow(() => verifyShots(root));
+    const tooShort = fs.readFileSync(path.join(root, 'shot-main-open.png'));
+    tooShort.writeUInt32BE(639, 20);
+    fs.writeFileSync(path.join(root, 'shot-main-open.png'), tooShort);
+    assert.throws(() => verifyShots(root), /尺寸错误/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });

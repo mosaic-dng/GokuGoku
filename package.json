@@ -1,7 +1,7 @@
 {
   "name": "gokugoku",
   "productName": "水分補給課",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "咕嘟咕嘟——专治上班族不喝水的小课",
   "main": "main.js",
   "author": "水分補給課",

@@ -9,8 +9,8 @@ const EXPECTED_SHOTS = {
   'shot-onboarding-720-step2.png': [480, 720],
   'shot-main.png': [480, 720],
   'shot-undo.png': [480, 720],
-  'shot-main-open.png': [480, 960],
-  'shot-settings-bottom.png': [480, 960],
+  'shot-main-open.png': { width: 480, minHeight: 640, maxHeight: 960 },
+  'shot-settings-bottom.png': { width: 480, minHeight: 640, maxHeight: 960 },
   'shot-reminder.png': [520, 380],
 };
 
@@ -35,8 +35,18 @@ function verifyShots(directory) {
     const filename = path.join(directory, name);
     if (!fs.existsSync(filename)) throw new Error(`缺少 Electron 截图：${name}`);
     const actual = pngDimensions(filename);
-    if (actual[0] !== expected[0] || actual[1] !== expected[1]) {
-      throw new Error(`${name} 尺寸错误：期望 ${expected.join('x')}，实际 ${actual.join('x')}`);
+    const valid = Array.isArray(expected)
+      ? actual[0] === expected[0] && actual[1] === expected[1]
+      : (
+        actual[0] === expected.width
+        && actual[1] >= expected.minHeight
+        && actual[1] <= expected.maxHeight
+      );
+    if (!valid) {
+      const expectedLabel = Array.isArray(expected)
+        ? expected.join('x')
+        : `${expected.width}x${expected.minHeight}–${expected.maxHeight}`;
+      throw new Error(`${name} 尺寸错误：期望 ${expectedLabel}，实际 ${actual.join('x')}`);
     }
   }
 }

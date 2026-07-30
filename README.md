@@ -63,7 +63,7 @@
 前往 [GitHub Releases](https://github.com/mosaic-dng/GokuGoku/releases/latest) 下载：
 
 ```text
-GokuGoku-v1.2.0-Windows-x64.zip
+GokuGoku-v1.2.1-Windows-x64.zip
 ```
 
 解压 ZIP 后运行 `GokuGoku.exe`。这是免安装便携目录，请保留解压后的全部文件，不要只单独复制 EXE。
@@ -120,9 +120,9 @@ npm run pack:win
 npm run verify:win
 ```
 
-当前 v1.2.0 验收结果：
+当前 v1.2.1 验收结果：
 
-- `66 / 66` 项自动化测试通过。
+- `67 / 67` 项自动化测试通过。
 - Electron 验收覆盖首次设置、两步设置、主界面、展开设置、喝水、撤销和提醒窗口。
 - 便携目录约 `301.90 MiB`。
 - 发布 ZIP 约 `126.06 MiB`。
