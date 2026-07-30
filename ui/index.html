@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>水分補給課</title>
 <link rel="stylesheet" href="style.css">
 <style>
@@ -340,19 +341,19 @@
 
           <div class="field">
             <div class="fname">喝水＋起身</div>
-            <div class="switch" id="swSedentary"></div>
+            <button class="switch" id="swSedentary" type="button" aria-label="喝水加起身提醒" aria-pressed="false"></button>
           </div>
           <div class="field">
             <div class="fname">周末也催</div>
-            <div class="switch" id="swWeekend"></div>
+            <button class="switch" id="swWeekend" type="button" aria-label="周末催水" aria-pressed="false"></button>
           </div>
           <div class="field">
             <div class="fname">课内音效</div>
-            <div class="switch" id="swSound"></div>
+            <button class="switch" id="swSound" type="button" aria-label="课内音效" aria-pressed="false"></button>
           </div>
           <div class="field">
             <div class="fname">开机自动潜伏</div>
-            <div class="switch" id="swAuto"></div>
+            <button class="switch" id="swAuto" type="button" aria-label="开机自动启动" aria-pressed="false"></button>
           </div>
           <div class="field reset-field">
             <div class="fname">今日饮水记录</div>

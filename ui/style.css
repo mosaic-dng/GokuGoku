@@ -149,6 +149,7 @@ body {
 }
 .switch.on { background: #86d67a; border-color: #5a9e1e; }
 .switch.on::after { left: 25px; }
+.switch:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
 
 /* ---------- 下拉 ---------- */
 select {

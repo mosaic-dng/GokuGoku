@@ -15,5 +15,5 @@ contextBridge.exposeInMainWorld('api', {
   setExpand: (open) => ipcRenderer.invoke('set-expand', open),
   onState: (cb) => ipcRenderer.on('state', (_e, s) => cb(s)),
   onReminder: (cb) => ipcRenderer.on('reminder', (_e, p) => cb(p)),
-  onReminderCancel: (cb) => ipcRenderer.on('reminder-cancel', cb),
+  onReminderCancel: (cb) => ipcRenderer.on('reminder-cancel', () => cb()),
 });

@@ -130,6 +130,64 @@ test('motion is restrained and reduced-motion disables movement and typewriting'
   assert.match(reminderJs, /if \(reducedMotion\.matches\) \{\s*\$\('#txt'\)\.textContent = text;/s);
 });
 
+test('renderer pages enforce a restrictive content security policy', () => {
+  for (const html of [indexHtml, reminderHtml]) {
+    assert.match(html, /<meta\s+http-equiv="Content-Security-Policy"/);
+    for (const directive of [
+      "default-src 'none'",
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data:",
+      "font-src 'self'",
+      "connect-src 'none'",
+      "object-src 'none'",
+      "base-uri 'none'",
+      "form-action 'none'",
+    ]) {
+      assert.equal(html.includes(directive), true, `missing CSP directive: ${directive}`);
+    }
+  }
+});
+
+test('renderer boundaries explicitly enable Electron isolation and validate navigation and IPC senders', () => {
+  assert.equal((mainJs.match(/contextIsolation:\s*true/g) || []).length, 2);
+  assert.equal((mainJs.match(/nodeIntegration:\s*false/g) || []).length, 2);
+  assert.equal((mainJs.match(/sandbox:\s*true/g) || []).length, 2);
+  assert.match(mainJs, /function lockWindowNavigation\(win, allowedUrl\)/);
+  assert.match(mainJs, /win\.webContents\.setWindowOpenHandler\(\(\) => \(\{ action: 'deny' \}\)\)/);
+  assert.match(mainJs, /win\.webContents\.on\('will-navigate'/);
+  assert.match(mainJs, /event\.senderFrame\?\.url === expectedUrl/);
+  assert.match(
+    mainJs,
+    /ipcMain\.handle\('get-state', \(event\) => \(\s*fromWindow\(event, mainWin\)\s*\|\|\s*fromWindow\(event, remWin\)/s,
+  );
+  assert.match(
+    preloadJs,
+    /onReminderCancel:\s*\(cb\)\s*=>\s*ipcRenderer\.on\('reminder-cancel',\s*\(\)\s*=>\s*cb\(\)\)/,
+  );
+  assert.match(mainJs, /const invalidWindowRequest = \(\) => \(\{ ok: false, error: '无效窗口请求' \}\)/);
+  assert.doesNotMatch(mainJs, /fromWindow\(event, mainWin\) \? doDrink\('main'\) : snapshot\(\)/);
+  assert.doesNotMatch(mainJs, /if \(!fromWindow\(event, remWin\)\) return snapshot\(\)/);
+  assert.doesNotMatch(mainJs, /fromWindow\(event, mainWin\) \? setSetting\(key, value\) : snapshot\(\)/);
+});
+
+test('DND editor assigns persisted values through DOM properties instead of HTML markup', () => {
+  const editor = indexJs.match(/function renderDndEditor\(container, ranges, onChange\) \{[\s\S]*?\n\}/);
+  assert.ok(editor, 'DND editor must exist');
+  assert.doesNotMatch(editor[0], /row\.innerHTML/);
+  assert.match(editor[0], /startInput\.value = range\.start/);
+  assert.match(editor[0], /endInput\.value = range\.end/);
+  assert.match(editor[0], /removeButton\.textContent = '×'/);
+});
+
+test('setting switches are keyboard-accessible and expose their pressed state', () => {
+  for (const id of ['swSedentary', 'swWeekend', 'swSound', 'swAuto']) {
+    assert.match(indexHtml, new RegExp(`<button[^>]+id="${id}"[^>]+type="button"[^>]+aria-label="[^"]+"`));
+  }
+  assert.match(indexJs, /control\.setAttribute\('aria-pressed', String\(!!enabled\)\)/);
+  assert.match(styleCss, /\.switch:focus-visible/);
+});
+
 test('renderer preserves drafts and storage errors across periodic state updates', () => {
   assert.equal((indexJs.match(/settingsDraftReady = false/g) || []).length, 1);
   assert.equal((indexJs.match(/setupDraftReady = false/g) || []).length, 1);

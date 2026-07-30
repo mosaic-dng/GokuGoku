@@ -5,6 +5,7 @@ const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, screen } = require
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
+const { pathToFileURL } = require('url');
 
 const COPY = require('./ui/copy.js');
 const { ensureMigrationBackup } = require('./lib/migration-backup.js');
@@ -26,6 +27,8 @@ const {
 } = require('./lib/data.js');
 const { decideTick } = require('./lib/scheduler.js');
 
+const MAIN_PAGE_URL = pathToFileURL(path.join(__dirname, 'ui', 'index.html')).href;
+const REMINDER_PAGE_URL = pathToFileURL(path.join(__dirname, 'ui', 'reminder.html')).href;
 const IS_HIDDEN_LAUNCH = process.argv.includes('--hidden');
 if (process.env.SHOT) app.commandLine.appendSwitch('force-device-scale-factor', '1');
 if (process.env.SHOT_DATA_DIR) app.setPath('userData', path.resolve(process.env.SHOT_DATA_DIR));
@@ -321,6 +324,13 @@ function resizeMainWindow(targetHeight) {
   }, true);
 }
 
+function lockWindowNavigation(win, allowedUrl) {
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  win.webContents.on('will-navigate', (event, url) => {
+    if (url !== allowedUrl) event.preventDefault();
+  });
+}
+
 function createWindows() {
   const { workArea } = screen.getPrimaryDisplay();
   mainWin = new BrowserWindow({
@@ -335,9 +345,15 @@ function createWindows() {
     fullscreenable: false,
     show: false,
     icon: path.join(__dirname, 'assets', 'app.png'),
-    webPreferences: { preload: path.join(__dirname, 'preload.js') },
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
   });
-  mainWin.loadFile('ui/index.html');
+  lockWindowNavigation(mainWin, MAIN_PAGE_URL);
+  mainWin.loadFile(path.join(__dirname, 'ui', 'index.html'));
   mainWin.once('ready-to-show', () => {
     if ((!IS_HIDDEN_LAUNCH || !db.profileCompleted) && !process.env.SHOT) mainWin.show();
   });
@@ -359,9 +375,15 @@ function createWindows() {
     focusable: true,
     show: false,
     hasShadow: false,
-    webPreferences: { preload: path.join(__dirname, 'preload.js') },
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
   });
-  remWin.loadFile('ui/reminder.html');
+  lockWindowNavigation(remWin, REMINDER_PAGE_URL);
+  remWin.loadFile(path.join(__dirname, 'ui', 'reminder.html'));
   remWin.setAlwaysOnTop(true, 'screen-saver');
   remWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 }
@@ -615,28 +637,42 @@ function setSetting(key, value) {
 
 /* ---------- IPC ---------- */
 function setupIpc() {
-  const fromWindow = (event, win) => !!win && !win.isDestroyed() && event.sender.id === win.webContents.id;
-  ipcMain.handle('get-state', () => snapshot());
-  ipcMain.handle('drink', (event) => (fromWindow(event, mainWin) ? doDrink('main') : snapshot()));
+  const fromWindow = (event, win) => {
+    if (!win || win.isDestroyed() || event.sender.id !== win.webContents.id) return false;
+    const expectedUrl = win === mainWin ? MAIN_PAGE_URL : REMINDER_PAGE_URL;
+    return event.senderFrame === win.webContents.mainFrame
+      && event.senderFrame?.url === expectedUrl;
+  };
+  const invalidWindowRequest = () => ({ ok: false, error: '无效窗口请求' });
+  ipcMain.handle('get-state', (event) => (
+    fromWindow(event, mainWin) || fromWindow(event, remWin)
+      ? snapshot()
+      : invalidWindowRequest()
+  ));
+  ipcMain.handle('drink', (event) => (
+    fromWindow(event, mainWin) ? doDrink('main') : invalidWindowRequest()
+  ));
   ipcMain.handle('undo-drink', (event, id) => {
     if (fromWindow(event, remWin)) return undoLatest(id, 'reminder');
     if (fromWindow(event, mainWin)) return undoLatest(id, 'main');
-    return { ok: false, reason: 'invalid-sender', state: snapshot() };
+    return { ...invalidWindowRequest(), reason: 'invalid-sender' };
   });
   ipcMain.handle('reset-today', (event) => (
     fromWindow(event, mainWin)
       ? resetTodayProgress()
-      : { ok: false, error: '无效窗口请求', state: snapshot() }
+      : invalidWindowRequest()
   ));
   ipcMain.handle('save-profile', (event, profile) => (
-    fromWindow(event, mainWin) ? saveProfile(profile) : { ok: false, error: '无效窗口请求' }
+    fromWindow(event, mainWin) ? saveProfile(profile) : invalidWindowRequest()
   ));
   ipcMain.handle('set-setting', (event, key, value) => (
-    fromWindow(event, mainWin) ? setSetting(key, value) : snapshot()
+    fromWindow(event, mainWin) ? setSetting(key, value) : invalidWindowRequest()
   ));
   ipcMain.handle('reminder-action', (event, action) => {
-    if (!fromWindow(event, remWin)) return snapshot();
-    if (!['drink', 'snooze', 'dismiss'].includes(action)) return snapshot();
+    if (!fromWindow(event, remWin)) return invalidWindowRequest();
+    if (!['drink', 'snooze', 'dismiss'].includes(action)) {
+      return { ok: false, error: '无效提醒操作' };
+    }
     reminderActive = false;
     if (action === 'drink') return doDrink('reminder');
     if (action === 'snooze') scheduleNext(5 * 60_000);
