@@ -23,7 +23,7 @@
 - 根据体重估算全天饮水参考量，并按分钟级工作时长计算上班目标。
 - 自定义每次喝水量、催水间隔、`HH:MM` 上下班时间与多个免打扰时段。
 - 只在允许的工作时段提醒；周末、午休、会议或下班后保持安静。
-- 提醒窗口会等待你选择喝水、稍后提醒或关闭，也可以附带起身活动提示。
+- 提醒窗口会等待你选择喝水、关闭或延后 5、15、30 分钟，也可以附带起身活动提示。
 - 主窗口、提醒窗口与托盘支持快速打卡，误点后可在短时间内撤销。
 - 进度条、杯子、水滴君和提示信息带有克制的状态动效。
 - 遵循 `prefers-reduced-motion`，减少漂浮、位移、打字机和弹跳效果。
@@ -54,16 +54,23 @@
 
 ### 催水提醒
 
-<p align="center">
-  <img src="docs/screenshots/reminder.png" width="520" alt="GokuGoku 催水提醒窗口">
-</p>
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/reminder.png" width="360" alt="GokuGoku 催水提醒窗口"></td>
+    <td align="center"><img src="docs/screenshots/reminder-snooze-menu.png" width="360" alt="GokuGoku 延后提醒菜单"></td>
+  </tr>
+  <tr>
+    <td align="center">喝水、活动与本次杯量提示</td>
+    <td align="center">选择 5、15 或 30 分钟后再提醒</td>
+  </tr>
+</table>
 
 ## 下载与使用
 
 前往 [GitHub Releases](https://github.com/mosaic-dng/GokuGoku/releases/latest) 下载：
 
 ```text
-GokuGoku-v1.2.1-Windows-x64.zip
+GokuGoku-v1.3.0-Windows-x64.zip
 ```
 
 解压 ZIP 后运行 `GokuGoku.exe`。这是免安装便携目录，请保留解压后的全部文件，不要只单独复制 EXE。
@@ -120,12 +127,12 @@ npm run pack:win
 npm run verify:win
 ```
 
-当前 v1.2.1 验收结果：
+当前 v1.3.0 验收结果：
 
-- `67 / 67` 项自动化测试通过。
-- Electron 验收覆盖首次设置、两步设置、主界面、展开设置、喝水、撤销和提醒窗口。
+- `76 / 76` 项自动化测试通过。
+- Electron 验收覆盖 9 张截图，包括首次设置、两步设置、主界面、展开设置、喝水、撤销、提醒窗口和延后菜单。
 - 便携目录约 `301.90 MiB`。
-- 发布 ZIP 约 `126.06 MiB`。
+- 发布 ZIP 约 `126.07 MiB`。
 - 生产目录仅保留 `zh-CN.pak` 与 `en-US.pak`。
 - Chromium、GPU、D3D、Vulkan、ICU 与许可证文件均保留。
 

@@ -61,12 +61,27 @@ test('release workflow validates a stable main-branch tag and publishes one port
   assert.match(workflow, /GH_TOKEN:\s*\$\{\{\s*secrets\.GITHUB_TOKEN\s*\}\}/);
 });
 
-test('download and maintainer release documentation expose the release contract', () => {
+test('v1.3.0 download and maintainer documentation expose the release contract', () => {
   const readme = readRequired('README.md');
   const releasing = readRequired('docs/RELEASING.md');
+  const packageJson = JSON.parse(readRequired('package.json'));
+  const packageLock = JSON.parse(readRequired('package-lock.json'));
 
+  assert.equal(packageJson.version, '1.3.0');
+  assert.equal(packageLock.version, '1.3.0');
+  assert.equal(packageLock.packages[''].version, '1.3.0');
   assert.match(readme, /https:\/\/github\.com\/mosaic-dng\/GokuGoku\/releases\/latest/);
   assert.equal((readme.match(/docs\/RELEASING\.md/g) || []).length, 2);
+  assert.match(readme, /GokuGoku-v1\.3\.0-Windows-x64\.zip/);
+  assert.match(readme, /当前 v1\.3\.0 验收结果/);
+  assert.match(readme, /76\s*\/\s*76/);
+  assert.match(readme, /Electron 验收覆盖 9 张截图/);
+  assert.match(readme, /docs\/screenshots\/reminder-snooze-menu\.png/);
+  assert.match(readme, /5、15、30 分钟/);
+  assert.equal(
+    fs.existsSync(path.join(root, 'docs', 'screenshots', 'reminder-snooze-menu.png')),
+    true,
+  );
   assert.match(releasing, /GokuGoku-v1\.2\.3-Windows-x64\.zip/);
   assert.match(releasing, /git tag -a v1\.1\.0/);
   assert.match(releasing, /npm version (?:patch|minor|major)/);
