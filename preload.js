@@ -8,7 +8,7 @@ contextBridge.exposeInMainWorld('api', {
   resetToday: () => ipcRenderer.invoke('reset-today'),
   saveProfile: (profile) => ipcRenderer.invoke('save-profile', profile),
   setSetting: (key, value) => ipcRenderer.invoke('set-setting', key, value),
-  reminderAction: (action) => ipcRenderer.invoke('reminder-action', action),
+  reminderAction: (action, snoozeMinutes) => ipcRenderer.invoke('reminder-action', action, snoozeMinutes),
   reminderDone: () => ipcRenderer.invoke('reminder-done'),
   winMin: () => ipcRenderer.invoke('win-min'),
   winHide: () => ipcRenderer.invoke('win-hide'),

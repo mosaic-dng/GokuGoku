@@ -11,6 +11,54 @@ let countdownTimer = null;
 let closing = false;
 let undoId = null;
 
+function snoozeOptions() {
+  return [...document.querySelectorAll('.snooze-option')];
+}
+
+function closeSnoozeMenu(restoreFocus = false) {
+  const menu = $('#snoozeMenu');
+  if (menu.hidden) return;
+  menu.hidden = true;
+  $('#btnSnooze').setAttribute('aria-expanded', 'false');
+  if (restoreFocus) $('#btnSnooze').focus();
+}
+
+function openSnoozeMenu() {
+  const menu = $('#snoozeMenu');
+  menu.hidden = false;
+  $('#btnSnooze').setAttribute('aria-expanded', 'true');
+  snoozeOptions()[0]?.focus();
+}
+
+function toggleSnoozeMenu() {
+  if ($('#snoozeMenu').hidden) openSnoozeMenu();
+  else closeSnoozeMenu(true);
+}
+
+function handleSnoozeMenuKeydown(event) {
+  const options = snoozeOptions();
+  const current = options.indexOf(document.activeElement);
+  let next = current;
+  switch (event.key) {
+    case 'ArrowDown':
+      next = (current + 1) % options.length;
+      break;
+    case 'ArrowUp':
+      next = (current - 1 + options.length) % options.length;
+      break;
+    case 'Home':
+      next = 0;
+      break;
+    case 'End':
+      next = options.length - 1;
+      break;
+    default:
+      return;
+  }
+  event.preventDefault();
+  options[next]?.focus();
+}
+
 function clearTimers() {
   clearInterval(typingTimer);
   clearTimeout(startTimer);
@@ -42,6 +90,7 @@ function typewriter(text, done) {
 
 function resetView() {
   clearTimers();
+  closeSnoozeMenu();
   closing = false;
   undoId = null;
   $('#btns').classList.remove('show');
@@ -79,7 +128,7 @@ function finishClose(delay = 320) {
   setTimeout(() => window.api.reminderDone(), reducedMotion.matches ? 0 : delay);
 }
 
-async function act(action) {
+async function act(action, snoozeMinutes) {
   if (closing) return;
   if (action === 'drink') {
     clearTimers();
@@ -108,7 +157,8 @@ async function act(action) {
   }
 
   if (action === 'snooze') Sound.womp();
-  await window.api.reminderAction(action);
+  const result = await window.api.reminderAction(action, snoozeMinutes);
+  if (result?.ok === false) return;
   finishClose();
 }
 
@@ -131,6 +181,7 @@ async function undo() {
 
 function cancel() {
   clearTimers();
+  closeSnoozeMenu();
   closing = false;
   undoId = null;
   $('#dialog').classList.remove('in', 'out');
@@ -140,7 +191,24 @@ function cancel() {
 
 window.addEventListener('DOMContentLoaded', () => {
   $('#btnDrink').addEventListener('click', () => act('drink'));
-  $('#btnSnooze').addEventListener('click', () => act('snooze'));
+  $('#btnSnooze').addEventListener('click', toggleSnoozeMenu);
+  $('#snoozeMenu').addEventListener('keydown', handleSnoozeMenuKeydown);
+  for (const option of snoozeOptions()) {
+    option.addEventListener('click', () => {
+      const minutes = Number(option.dataset.minutes);
+      closeSnoozeMenu();
+      act('snooze', minutes);
+    });
+  }
+  document.addEventListener('click', (event) => {
+    if (!$('#snoozeWrap').contains(event.target)) closeSnoozeMenu();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !$('#snoozeMenu').hidden) {
+      event.preventDefault();
+      closeSnoozeMenu(true);
+    }
+  });
   $('#btnClose').addEventListener('click', () => act('dismiss'));
   $('#btnUndo').addEventListener('click', undo);
   window.api.onReminder(show);

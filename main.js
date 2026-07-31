@@ -25,7 +25,7 @@ const {
   rolloverDay,
   undoDrink,
 } = require('./lib/data.js');
-const { decideTick } = require('./lib/scheduler.js');
+const { decideTick, normalizeSnoozeMinutes } = require('./lib/scheduler.js');
 
 const MAIN_PAGE_URL = pathToFileURL(path.join(__dirname, 'ui', 'index.html')).href;
 const REMINDER_PAGE_URL = pathToFileURL(path.join(__dirname, 'ui', 'reminder.html')).href;
@@ -668,15 +668,23 @@ function setupIpc() {
   ipcMain.handle('set-setting', (event, key, value) => (
     fromWindow(event, mainWin) ? setSetting(key, value) : invalidWindowRequest()
   ));
-  ipcMain.handle('reminder-action', (event, action) => {
+  ipcMain.handle('reminder-action', (event, action, snoozeMinutes) => {
     if (!fromWindow(event, remWin)) return invalidWindowRequest();
     if (!['drink', 'snooze', 'dismiss'].includes(action)) {
       return { ok: false, error: '无效提醒操作' };
     }
+    if (action === 'snooze') {
+      const validatedSnoozeMinutes = normalizeSnoozeMinutes(snoozeMinutes);
+      if (validatedSnoozeMinutes === null) {
+        return { ok: false, error: '无效稍后提醒时长' };
+      }
+      reminderActive = false;
+      scheduleNext(validatedSnoozeMinutes * 60_000);
+      return pushState();
+    }
     reminderActive = false;
     if (action === 'drink') return doDrink('reminder');
-    if (action === 'snooze') scheduleNext(5 * 60_000);
-    else if (action === 'dismiss') scheduleNext();
+    if (action === 'dismiss') scheduleNext();
     const state = pushState();
     return state;
   });
@@ -895,6 +903,36 @@ async function shotMode() {
   remWin.showInactive();
   await new Promise((resolve) => setTimeout(resolve, Number(process.env.SHOT_REMINDER_WAIT_MS || 2200)));
   fs.writeFileSync(path.join(out, 'shot-reminder.png'), (await remWin.webContents.capturePage()).toPNG());
+  await remWin.webContents.executeJavaScript("document.getElementById('btnSnooze').click(); void 0;");
+  await new Promise((resolve) => setTimeout(resolve, 180));
+  const snoozeMenuBounds = await remWin.webContents.executeJavaScript(`(() => {
+    const menu = document.getElementById('snoozeMenu');
+    const rect = document.getElementById('snoozeMenu').getBoundingClientRect();
+    return {
+      expanded: document.getElementById('btnSnooze').getAttribute('aria-expanded'),
+      hidden: menu.hidden,
+      left: rect.left,
+      top: rect.top,
+      right: rect.right,
+      bottom: rect.bottom,
+      width: window.innerWidth,
+      height: window.innerHeight,
+    };
+  })()`);
+  if (
+    snoozeMenuBounds.expanded !== 'true'
+    || snoozeMenuBounds.hidden
+    || snoozeMenuBounds.left < 0
+    || snoozeMenuBounds.top < 0
+    || snoozeMenuBounds.right > snoozeMenuBounds.width
+    || snoozeMenuBounds.bottom > snoozeMenuBounds.height
+  ) {
+    throw new Error(`延后菜单超出提醒窗口：${JSON.stringify(snoozeMenuBounds)}`);
+  }
+  fs.writeFileSync(
+    path.join(out, 'shot-reminder-snooze-menu.png'),
+    (await remWin.webContents.capturePage()).toPNG(),
+  );
   await mainWin.webContents.executeJavaScript("document.getElementById('drinkBtn').click(); void 0;");
   await new Promise((resolve) => setTimeout(resolve, 350));
   if (reminderActive || isReminderVisible()) throw new Error('外部打卡未关闭现有提醒');

@@ -130,6 +130,43 @@ test('motion is restrained and reduced-motion disables movement and typewriting'
   assert.match(reminderJs, /if \(reducedMotion\.matches\) \{\s*\$\('#txt'\)\.textContent = text;/s);
 });
 
+test('reminder labels move up and snooze uses an accessible three-option menu', () => {
+  const metaRule = reminderHtml.match(/\.reminder-meta\s*\{([^}]*)\}/s);
+  assert.ok(metaRule, 'reminder metadata rule must exist');
+  assert.match(metaRule[1], /top:\s*-10px/);
+  assert.match(reminderHtml, /id="btnSnooze"[^>]*aria-haspopup="menu"[^>]*aria-expanded="false"/);
+  assert.match(reminderHtml, /id="snoozeMenu"[^>]*role="menu"/);
+  assert.equal((reminderHtml.match(/class="snooze-option"/g) || []).length, 3);
+  for (const minutes of [5, 15, 30]) {
+    assert.match(
+      reminderHtml,
+      new RegExp(`class="snooze-option"[^>]*data-minutes="${minutes}"[^>]*role="menuitem"`),
+    );
+  }
+  assert.match(reminderHtml, />再苟一会\s*<span[^>]*aria-hidden="true">▾<\/span>/);
+  assert.doesNotMatch(reminderHtml, />再苟 5 分钟</);
+
+  assert.match(reminderJs, /function openSnoozeMenu\(\)/);
+  assert.match(reminderJs, /function closeSnoozeMenu\(/);
+  assert.match(reminderJs, /case 'ArrowDown':/);
+  assert.match(reminderJs, /case 'ArrowUp':/);
+  assert.match(reminderJs, /event\.key === 'Escape'/);
+  assert.match(reminderJs, /act\('snooze',\s*minutes\)/);
+});
+
+test('selected snooze minutes cross the preload boundary and are validated before scheduling', () => {
+  assert.match(
+    preloadJs,
+    /reminderAction:\s*\(action,\s*snoozeMinutes\)\s*=>\s*ipcRenderer\.invoke\('reminder-action',\s*action,\s*snoozeMinutes\)/,
+  );
+  assert.match(mainJs, /const \{\s*decideTick,\s*normalizeSnoozeMinutes\s*\} = require\('\.\/lib\/scheduler\.js'\)/s);
+  assert.match(mainJs, /ipcMain\.handle\('reminder-action',\s*\(event,\s*action,\s*snoozeMinutes\)\s*=>/);
+  assert.match(
+    mainJs,
+    /const validatedSnoozeMinutes = normalizeSnoozeMinutes\(snoozeMinutes\);[\s\S]*?if \(validatedSnoozeMinutes === null\)[\s\S]*?reminderActive = false;[\s\S]*?scheduleNext\(validatedSnoozeMinutes \* 60_000\)/,
+  );
+});
+
 test('renderer pages enforce a restrictive content security policy', () => {
   for (const html of [indexHtml, reminderHtml]) {
     assert.match(html, /<meta\s+http-equiv="Content-Security-Policy"/);
@@ -284,6 +321,7 @@ test('Electron shot mode checks both onboarding layouts for real overflow', () =
     'shot-onboarding-880.png',
     'shot-onboarding-720-step1.png',
     'shot-onboarding-720-step2.png',
+    'shot-reminder-snooze-menu.png',
   ]) {
     assert.ok(mainJs.includes(filename), `missing screenshot ${filename}`);
   }
@@ -295,6 +333,9 @@ test('Electron shot mode checks both onboarding layouts for real overflow', () =
   assert.match(mainJs, /Math\.round\(workArea\.x \+ \(workArea\.width - width\) \/ 2\)/);
   assert.match(mainJs, /mainWin\.getSize\(\)/);
   assert.match(mainJs, /截图窗口尺寸错误/);
+  assert.match(mainJs, /document\.getElementById\('btnSnooze'\)\.click\(\)/);
+  assert.match(mainJs, /document\.getElementById\('snoozeMenu'\)\.getBoundingClientRect\(\)/);
+  assert.match(mainJs, /延后菜单超出提醒窗口/);
   assert.match(mainJs, /app\.commandLine\.appendSwitch\('force-device-scale-factor', '1'\)/);
   assert.match(mainJs, /shotMode\(\)\.catch\(\(error\) =>/);
   assert.match(mainJs, /app\.exit\(1\)/);

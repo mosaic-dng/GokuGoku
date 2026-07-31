@@ -12,6 +12,7 @@ const EXPECTED_SHOTS = {
   'shot-main-open.png': { width: 480, minHeight: 640, maxHeight: 960 },
   'shot-settings-bottom.png': { width: 480, minHeight: 640, maxHeight: 960 },
   'shot-reminder.png': [520, 380],
+  'shot-reminder-snooze-menu.png': [520, 380],
 };
 
 function pngDimensions(filename) {
