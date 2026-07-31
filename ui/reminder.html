@@ -50,6 +50,7 @@
   }
   @keyframes blink { 50% { opacity: 0; } }
   .reminder-meta {
+    position: relative; top: -10px;
     display: flex; gap: 8px; flex-wrap: wrap; min-height: 30px; margin-top: 7px;
     opacity: 0; transform: translateY(5px); transition: all .25s var(--ease);
   }
@@ -66,6 +67,29 @@
     transition: all .3s var(--ease); pointer-events: none;
   }
   .btns.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .snooze-wrap { position: relative; }
+  .snooze-caret { font-size: 11px; transition: transform .15s var(--ease); }
+  #btnSnooze[aria-expanded="true"] .snooze-caret { transform: rotate(180deg); }
+  .snooze-menu {
+    position: absolute; left: 0; bottom: calc(100% + 8px); z-index: 4;
+    display: grid; width: 100%; min-width: 146px; padding: 7px;
+    border: 2px solid var(--faint); border-radius: 17px;
+    background: #fffdf4; box-shadow: 0 9px 22px rgba(61,52,40,.22);
+    animation: menuIn .16s var(--ease);
+  }
+  .snooze-menu[hidden] { display: none; }
+  @keyframes menuIn {
+    from { opacity: 0; transform: translateY(6px) scale(.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .snooze-option {
+    width: 100%; min-height: 34px; padding: 5px 12px;
+    border: none; border-radius: 11px; background: transparent;
+    color: var(--ink); font: 800 14px var(--font); text-align: left; cursor: pointer;
+  }
+  .snooze-option:hover, .snooze-option:focus-visible {
+    outline: none; background: #f5ead0; color: #7b5a2c;
+  }
   .confirm {
     display: none; align-items: center; justify-content: space-between; gap: 10px;
     min-height: 60px; margin-top: 14px; padding: 10px 11px 10px 15px;
@@ -122,7 +146,14 @@
       <span class="meta-chip walk" id="walkTip">🚶 再走动 1–2 分钟</span>
     </div>
     <div class="btns" id="btns">
-      <button class="btn btn-ghost mid" id="btnSnooze">再苟 5 分钟</button>
+      <div class="snooze-wrap" id="snoozeWrap">
+        <button class="btn btn-ghost mid" id="btnSnooze" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="snoozeMenu">再苟一会 <span class="snooze-caret" aria-hidden="true">▾</span></button>
+        <div class="snooze-menu" id="snoozeMenu" role="menu" aria-label="选择延后提醒时长" hidden>
+          <button class="snooze-option" data-minutes="5" role="menuitem" type="button">5 分钟</button>
+          <button class="snooze-option" data-minutes="15" role="menuitem" type="button">15 分钟</button>
+          <button class="snooze-option" data-minutes="30" role="menuitem" type="button">30 分钟</button>
+        </div>
+      </div>
       <button class="btn btn-primary mid" id="btnDrink">喝了！（+200ml）</button>
     </div>
     <div class="confirm" id="confirm">

@@ -13,7 +13,7 @@ const {
   createPackagerOptions,
   pruneLocales,
 } = require('../scripts/pack-win.js');
-const { verifyShots } = require('../scripts/verify-shots.js');
+const { EXPECTED_SHOTS, verifyShots } = require('../scripts/verify-shots.js');
 
 test('Windows packaging keeps only Chinese and English locale packs', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gokugoku-locales-'));
@@ -121,6 +121,7 @@ test('portable verifier audits size, runtime files, locales, and ASAR exclusions
   assert.match(shotVerifier, /'shot-onboarding-880\.png': \[480, 880\]/);
   assert.match(shotVerifier, /'shot-onboarding-720-step1\.png': \[480, 720\]/);
   assert.match(shotVerifier, /'shot-reminder\.png': \[520, 380\]/);
+  assert.deepEqual(EXPECTED_SHOTS['shot-reminder-snooze-menu.png'], [520, 380]);
 });
 
 test('screenshot verifier accepts settings height constrained by the runner work area', () => {
@@ -134,6 +135,7 @@ test('screenshot verifier accepts settings height constrained by the runner work
     'shot-main-open.png': [480, 696],
     'shot-settings-bottom.png': [480, 696],
     'shot-reminder.png': [520, 380],
+    'shot-reminder-snooze-menu.png': [520, 380],
   };
 
   try {

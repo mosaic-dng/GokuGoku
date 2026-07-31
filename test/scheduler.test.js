@@ -3,7 +3,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { decideTick } = require('../lib/scheduler.js');
+const {
+  SNOOZE_MINUTES,
+  decideTick,
+  normalizeSnoozeMinutes,
+} = require('../lib/scheduler.js');
 
 const settings = {
   workStart: '09:15',
@@ -26,6 +30,19 @@ function tickAt(hours, minutes, overrides = {}) {
     ...overrides,
   });
 }
+
+test('snooze accepts only the three reminder menu durations', () => {
+  assert.deepEqual(SNOOZE_MINUTES, [5, 15, 30]);
+  for (const minutes of SNOOZE_MINUTES) {
+    assert.equal(normalizeSnoozeMinutes(minutes), minutes);
+  }
+});
+
+test('snooze rejects missing, coerced, and unsupported durations', () => {
+  for (const value of [undefined, null, '5', 0, 10, 20, 25, 31, NaN, Infinity]) {
+    assert.equal(normalizeSnoozeMinutes(value), null);
+  }
+});
 
 test('a due reminder fires once and leaves no next timer while visible', () => {
   const due = tickAt(10, 0);
