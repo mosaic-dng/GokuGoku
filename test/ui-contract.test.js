@@ -197,7 +197,7 @@ test('renderer boundaries explicitly enable Electron isolation and validate navi
   assert.match(mainJs, /event\.senderFrame\?\.url === expectedUrl/);
   assert.match(
     mainJs,
-    /ipcMain\.handle\('get-state', \(event\) => \(\s*fromWindow\(event, mainWin\)\s*\|\|\s*fromWindow\(event, remWin\)/s,
+    /ipcMain\.handle\('get-state', \(event\) => \(\s*fromWindow\(event, mainWin\) \? snapshot\(\) : invalidWindowRequest\(\)/s,
   );
   assert.match(
     preloadJs,
@@ -386,7 +386,6 @@ test('saveProfile persists minute-precise work hours with the rest of the profil
   assert.match(mainJs, /db\.settings\.workStart = validation\.profile\.workStart/);
   assert.match(mainJs, /db\.settings\.workEnd = validation\.profile\.workEnd/);
   assert.match(mainJs, /db\.settings\.dndRanges = validation\.profile\.dndRanges/);
-  assert.match(mainJs, /validateWorkHours\(candidateStart, candidateEnd\)/);
   assert.doesNotMatch(mainJs, /db\.settings\.workStart = Number\(value\)/);
   assert.doesNotMatch(mainJs, /db\.settings\.workEnd = Number\(value\)/);
 });

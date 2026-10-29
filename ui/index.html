@@ -85,7 +85,6 @@
   .field.col { flex-direction: column; align-items: stretch; gap: 8px; }
   .field:last-child { border-bottom: none; }
   .field .fname { font-size: 15px; font-weight: 800; color: var(--text); flex: none; }
-  .field-tools { display: flex; align-items: center; gap: 7px; }
   .worktime { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sub); }
   .worktime input { width: 128px; }
   .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -146,7 +145,7 @@
     background: var(--orange); color: #fff; font: 900 13px var(--font); cursor: pointer;
   }
   #toast.has-action #toastAction { display: block; }
-  .btn:disabled, .tiny-btn:disabled { cursor: default; opacity: .58; transform: none; }
+  .btn:disabled { cursor: default; opacity: .58; transform: none; }
 
   .setup-overlay {
     position: absolute; inset: 64px 0 0; z-index: 20; display: none;
@@ -355,7 +354,7 @@
             <div class="fname">开机自动潜伏</div>
             <button class="switch" id="swAuto" type="button" aria-label="开机自动启动" aria-pressed="false"></button>
           </div>
-          <div class="field reset-field">
+          <div class="field">
             <div class="fname">今日饮水记录</div>
             <button class="reset-today" id="resetTodayBtn">重置今日记录</button>
           </div>
