@@ -14,6 +14,7 @@ const {
   pruneLocales,
 } = require('../scripts/pack-win.js');
 const { EXPECTED_SHOTS, verifyShots } = require('../scripts/verify-shots.js');
+const { FORBIDDEN_ASAR_PATHS } = require('../scripts/verify-win-package.js');
 
 test('Windows packaging keeps only Chinese and English locale packs', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gokugoku-locales-'));
@@ -48,6 +49,10 @@ test('portable app excludes development material without removing runtime assets
     ['ui/index.html', false],
     ['assets/app.ico', false],
     ['LICENSE', false],
+    ['scripts/pack-win.js', true],
+    ['scripts/verify-shots.js', true],
+    ['scripts/verify-win-package.js', true],
+    ['scripts/shot-mode.js', false],
   ];
 
   for (const [file, shouldIgnore] of samples) {
@@ -55,6 +60,11 @@ test('portable app excludes development material without removing runtime assets
       APP_IGNORE_PATTERNS.some((pattern) => pattern.test(`/${file}`)),
       shouldIgnore,
       `${file} ignore=${shouldIgnore}`,
+    );
+    assert.equal(
+      FORBIDDEN_ASAR_PATHS.some((pattern) => pattern.test(`/${file}`)),
+      shouldIgnore,
+      `${file} forbidden=${shouldIgnore}`,
     );
   }
 });
