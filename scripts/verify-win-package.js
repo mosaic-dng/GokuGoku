@@ -2,7 +2,6 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const asar = require('@electron/asar');
 
 const MAX_PORTABLE_BYTES = 305 * 1024 * 1024;
 const REQUIRED_RUNTIME_FILES = [
@@ -27,7 +26,8 @@ const REQUIRED_RUNTIME_FILES = [
 ];
 const EXPECTED_LOCALES = ['en-US.pak', 'zh-CN.pak'];
 const FORBIDDEN_ASAR_PATHS = [
-  /^\/(?:test|docs|scripts|node_modules|\.github)(?:\/|$)/,
+  /^\/(?:test|docs|node_modules|\.github)(?:\/|$)/,
+  /^\/scripts\/(?!shot-mode\.js$).+/,
   /^\/(?:README\.md|使用说明\.md|package-lock\.json)$/,
   /(?:^|\/)(?:\.shots|\.shot-data|\.tmp-|gen-assets\.js)/,
 ];
@@ -43,6 +43,7 @@ function directorySize(directory) {
 }
 
 function verifyWindowsPackage(portableRoot) {
+  const asar = require('@electron/asar');
   for (const relativePath of REQUIRED_RUNTIME_FILES) {
     if (!fs.existsSync(path.join(portableRoot, relativePath))) {
       throw new Error(`缺少运行文件：${relativePath}`);

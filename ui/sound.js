@@ -30,7 +30,6 @@ const Sound = (() => {
   }
   return {
     setEnabled(v) { enabled = !!v; },
-    get enabled() { return enabled; },
     blip() {
       if (!enabled) return;
       tone(620 + Math.random() * 320, { dur: 0.045, type: 'triangle', gain: 0.035 });

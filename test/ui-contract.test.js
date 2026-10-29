@@ -13,6 +13,7 @@ const reminderHtml = fs.readFileSync(path.join(root, 'ui', 'reminder.html'), 'ut
 const reminderJs = fs.readFileSync(path.join(root, 'ui', 'reminder.js'), 'utf8');
 const hydrationJs = fs.readFileSync(path.join(root, 'lib', 'hydration.js'), 'utf8');
 const mainJs = fs.readFileSync(path.join(root, 'main.js'), 'utf8');
+const shotModeJs = fs.readFileSync(path.join(root, 'scripts', 'shot-mode.js'), 'utf8');
 const preloadJs = fs.readFileSync(path.join(root, 'preload.js'), 'utf8');
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const legacyTerms = {
@@ -323,22 +324,26 @@ test('Electron shot mode checks both onboarding layouts for real overflow', () =
     'shot-onboarding-720-step2.png',
     'shot-reminder-snooze-menu.png',
   ]) {
-    assert.ok(mainJs.includes(filename), `missing screenshot ${filename}`);
+    assert.ok(shotModeJs.includes(filename), `missing screenshot ${filename}`);
+    assert.equal(mainJs.includes(filename), false, `production main.js still contains ${filename}`);
   }
-  assert.match(mainJs, /overlay\.scrollHeight <= overlay\.clientHeight/);
-  assert.match(mainJs, /card\.scrollHeight <= card\.clientHeight/);
-  assert.match(mainJs, /首次设置页面溢出/);
-  assert.match(mainJs, /function setShotWindowSize\(width, height\)/);
-  assert.match(mainJs, /screen\.getPrimaryDisplay\(\)/);
-  assert.match(mainJs, /Math\.round\(workArea\.x \+ \(workArea\.width - width\) \/ 2\)/);
-  assert.match(mainJs, /mainWin\.getSize\(\)/);
-  assert.match(mainJs, /截图窗口尺寸错误/);
-  assert.match(mainJs, /document\.getElementById\('btnSnooze'\)\.click\(\)/);
-  assert.match(mainJs, /document\.getElementById\('snoozeMenu'\)\.getBoundingClientRect\(\)/);
-  assert.match(mainJs, /延后菜单超出提醒窗口/);
+  assert.match(shotModeJs, /overlay\.scrollHeight <= overlay\.clientHeight/);
+  assert.match(shotModeJs, /card\.scrollHeight <= card\.clientHeight/);
+  assert.match(shotModeJs, /首次设置页面溢出/);
+  assert.match(shotModeJs, /function setShotWindowSize\(width, height\)/);
+  assert.match(shotModeJs, /screen\.getPrimaryDisplay\(\)/);
+  assert.match(shotModeJs, /Math\.round\(workArea\.x \+ \(workArea\.width - width\) \/ 2\)/);
+  assert.match(shotModeJs, /mainWin\.getSize\(\)/);
+  assert.match(shotModeJs, /截图窗口尺寸错误/);
+  assert.match(shotModeJs, /document\.getElementById\('btnSnooze'\)\.click\(\)/);
+  assert.match(shotModeJs, /document\.getElementById\('snoozeMenu'\)\.getBoundingClientRect\(\)/);
+  assert.match(shotModeJs, /延后菜单超出提醒窗口/);
   assert.match(mainJs, /app\.commandLine\.appendSwitch\('force-device-scale-factor', '1'\)/);
+  assert.match(mainJs, /if \(process\.env\.SHOT\) \{\r?\n\s+const \{ createShotMode \} = require\('\.\/scripts\/shot-mode\.js'\);/);
   assert.match(mainJs, /shotMode\(\)\.catch\(\(error\) =>/);
   assert.match(mainJs, /app\.exit\(1\)/);
+  assert.doesNotMatch(mainJs, /function setShotWindowSize/);
+  assert.doesNotMatch(mainJs, /async function shotMode/);
 });
 
 test('daily reset is exposed only through the main settings interface', () => {

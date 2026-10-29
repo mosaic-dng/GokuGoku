@@ -482,7 +482,7 @@ window.addEventListener('DOMContentLoaded', () => {
   setInterval(newQuote, 50_000);
 
   $('#drinkBtn').addEventListener('click', async () => {
-    const result = await window.api.drink('main');
+    const result = await window.api.drink();
     if (!result.ok) {
       toast(result.error || '本次记录失败，请稍后重试。', { duration: 10_000 });
       return;

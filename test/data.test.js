@@ -19,14 +19,14 @@ test('new database starts with the recommended 200ml cup and lunch DND', () => {
   assert.equal(db.profileCompleted, false);
   assert.equal(db.settings.cupMl, 200);
   assert.equal(db.settings.intervalMin, 45);
-  assert.equal(db.settings.intervalMode, 'manual');
+  assert.equal(Object.hasOwn(db.settings, 'intervalMode'), false);
   assert.equal(db.settings.workStart, '09:00');
   assert.equal(db.settings.workEnd, '18:00');
   assert.deepEqual(db.settings.dndRanges, [{ start: '12:00', end: '13:00' }]);
   assert.equal(db.consumedMl, 0);
 });
 
-test('legacy automatic interval becomes manual without changing its saved minutes', () => {
+test('legacy interval mode is ignored without changing its saved minutes', () => {
   const legacyMode = ['a', 'u', 't', 'o'].join('');
   const result = migrateDatabase({
     schemaVersion: 2,
@@ -41,7 +41,7 @@ test('legacy automatic interval becomes manual without changing its saved minute
   }, '2026-07-27');
 
   assert.equal(result.db.settings.intervalMin, 75);
-  assert.equal(result.db.settings.intervalMode, 'manual');
+  assert.equal(Object.hasOwn(result.db.settings, 'intervalMode'), false);
   assert.equal(result.migratedFromVersion, 2);
   assert.equal(result.db.schemaVersion, 3);
   assert.equal(result.db.settings.workStart, '09:00');
@@ -206,7 +206,7 @@ test('day rollover archives millilitres and resets current progress', () => {
   assert.equal(db.lastDrinkAt, null);
 });
 
-test('reset today clears only current progress and returns a rollback snapshot', () => {
+test('reset today clears only current progress', () => {
   assert.equal(typeof data.resetToday, 'function');
   const db = data.createDefaultDatabase('2026-07-27');
   db.profileCompleted = true;
@@ -219,13 +219,8 @@ test('reset today clears only current progress and returns a rollback snapshot',
   const settingsBefore = structuredClone(db.settings);
   const historyBefore = structuredClone(db.history);
 
-  const previous = data.resetToday(db);
+  data.resetToday(db);
 
-  assert.deepEqual(previous, {
-    drinkCount: 7,
-    consumedMl: 1700,
-    lastDrinkAt: 123456,
-  });
   assert.equal(db.drinkCount, 0);
   assert.equal(db.consumedMl, 0);
   assert.equal(db.lastDrinkAt, null);
