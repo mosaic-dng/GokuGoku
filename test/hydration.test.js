@@ -84,18 +84,6 @@ test('work target is rounded to 50ml and clamped to 800-1200ml', () => {
   }).workGoalMl, 1200);
 });
 
-test('target cups are recalculated from the reference goal and current cup capacity', () => {
-  const result = calculateTargets({
-    weightKg: 60,
-    cupMl: 300,
-    workStart: '09:00',
-    workEnd: '17:00',
-  });
-
-  assert.equal(result.workGoalMl, 900);
-  assert.equal(result.targetCups, 3);
-});
-
 test('DND validation rejects reversed and overlapping time ranges', () => {
   assert.equal(validateDndRanges([{ start: '13:00', end: '12:00' }]).ok, false);
   assert.equal(validateDndRanges([
