@@ -17,7 +17,6 @@ const {
   validateWorkHours,
 } = require('./lib/hydration.js');
 const {
-  DEFAULT_SETTINGS,
   createDefaultDatabase,
   migrateDatabase,
   recordDrink,
@@ -37,7 +36,6 @@ let mainWin = null;
 let remWin = null;
 let tray = null;
 let tickTimer = null;
-let saveTimer = null;
 let balloonShown = false;
 let nextAt = null;
 let pausedUntil = null;
@@ -97,8 +95,6 @@ function load() {
 
 function save() {
   if (persistenceError) return false;
-  clearTimeout(saveTimer);
-  saveTimer = null;
   return writeDatabaseAtomic();
 }
 
@@ -126,8 +122,6 @@ function derived() {
     cupMl: Number(db.settings.cupMl) || 200,
     workStart: db.settings.workStart,
     workEnd: db.settings.workEnd,
-    consumedMl: db.consumedMl,
-    drinkCount: db.drinkCount,
   });
 }
 
@@ -150,8 +144,6 @@ function snapshot() {
   return {
     now: now.getTime(),
     profileRequired: !db.profileCompleted,
-    cups: db.drinkCount,
-    goal: metrics.targetCups,
     drinkCount: db.drinkCount,
     targetCups: metrics.targetCups,
     consumedMl: db.consumedMl,
@@ -194,8 +186,8 @@ function pushState({ rebuildMenu = false } = {}) {
 }
 
 /* ---------- 调度 ---------- */
-function effectiveIntervalMs(minutes = db.settings.intervalMin) {
-  return Number(minutes) * 60_000;
+function effectiveIntervalMs() {
+  return Number(db.settings.intervalMin) * 60_000;
 }
 
 function scheduleNext(delayMs = effectiveIntervalMs()) {
@@ -277,12 +269,12 @@ function pickReminder() {
   return COPY.reminders[index];
 }
 
-function fireReminder(forcedText) {
+function fireReminder() {
   if (!remWin || remWin.isDestroyed() || !db.profileCompleted || persistenceError) return;
   const availability = getReminderAvailability(new Date(), db.settings);
   if (!availability.allowed || goalDone() || Number(pausedUntil) > Date.now()) return;
 
-  const text = (forcedText || pickReminder()).replace('{mins}', String(minutesSinceDrink()));
+  const text = pickReminder().replace('{mins}', String(minutesSinceDrink()));
   reminderActive = true;
   nextAt = null;
   positionReminder();
@@ -574,7 +566,6 @@ function saveProfile(input) {
   db.settings.weightKg = validation.profile.weightKg;
   db.settings.cupMl = validation.profile.cupMl;
   db.settings.intervalMin = validation.profile.intervalMin;
-  db.settings.intervalMode = 'manual';
   db.settings.workStart = validation.profile.workStart;
   db.settings.workEnd = validation.profile.workEnd;
   db.settings.dndRanges = validation.profile.dndRanges;
@@ -607,7 +598,6 @@ function setSetting(key, value) {
     const validation = validateIntervalMin(value);
     if (!validation.ok) return { ok: false, error: validation.error, ...snapshot() };
     db.settings.intervalMin = validation.intervalMin;
-    db.settings.intervalMode = 'manual';
   } else if (key === 'workStart' || key === 'workEnd') {
     const candidateStart = key === 'workStart' ? value : db.settings.workStart;
     const candidateEnd = key === 'workEnd' ? value : db.settings.workEnd;
@@ -966,7 +956,6 @@ if (!gotLock) {
   app.on('before-quit', () => {
     app.__quitting = true;
     clearInterval(tickTimer);
-    clearTimeout(saveTimer);
     if (!persistenceError) writeDatabaseAtomic();
   });
 }

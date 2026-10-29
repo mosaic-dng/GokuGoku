@@ -18,8 +18,6 @@ test('60kg over an 8 hour workday produces 1800ml daily and 900ml at work', () =
     cupMl: 200,
     workStart: '09:15',
     workEnd: '17:15',
-    consumedMl: 0,
-    drinkCount: 0,
   });
 
   assert.equal(result.dailyGoalMl, 1800);
@@ -49,25 +47,10 @@ test('target cups are recalculated from the reference goal and current cup capac
     cupMl: 300,
     workStart: '09:00',
     workEnd: '17:00',
-    consumedMl: 400,
-    drinkCount: 2,
   });
 
   assert.equal(result.workGoalMl, 900);
   assert.equal(result.targetCups, 3);
-});
-
-test('drinking beyond the goal does not increase the target denominator', () => {
-  const result = calculateTargets({
-    weightKg: 60,
-    cupMl: 200,
-    workStart: '09:00',
-    workEnd: '17:00',
-    consumedMl: 1400,
-    drinkCount: 7,
-  });
-
-  assert.equal(result.targetCups, 5);
 });
 
 test('DND validation rejects reversed and overlapping time ranges', () => {
