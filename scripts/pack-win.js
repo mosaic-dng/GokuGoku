@@ -10,7 +10,7 @@ const APP_IGNORE_PATTERNS = [
   /^\/node_modules(?:\/|$)/,
   /^\/test(?:\/|$)/,
   /^\/docs(?:\/|$)/,
-  /^\/scripts(?:\/|$)/,
+  /^\/scripts\/(?!shot-mode\.js$).+/,
   /^\/\.github(?:\/|$)/,
   /^\/\.gitignore$/,
   /^\/\.tmp-/,
