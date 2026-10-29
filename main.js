@@ -472,17 +472,31 @@ function updateTray(state) {
 }
 
 /* ---------- 动作 ---------- */
+function commitChange(mutate) {
+  const previous = {
+    db: structuredClone(db),
+    lastUndo,
+    nextAt,
+  };
+  const changed = mutate() !== false;
+  if (!changed || save()) return true;
+  db = previous.db;
+  lastUndo = previous.lastUndo;
+  nextAt = previous.nextAt;
+  return false;
+}
+
 function doDrink(source = 'main') {
   if (persistenceError) return { ok: false, error: persistenceError, ...snapshot() };
   if (!db.profileCompleted) return { ok: false, error: '请先完成首次设置', ...snapshot() };
   const shouldCancelReminder = source !== 'reminder' && isReminderVisible();
   const id = crypto.randomUUID();
-  const undo = recordDrink(db, Date.now(), id);
-  if (!save()) {
-    undoDrink(db, undo, id, Date.now());
+  let undo;
+  if (!commitChange(() => {
+    undo = recordDrink(db, Date.now(), id);
+  })) {
     lastUndo = null;
-    const failedState = pushState({ rebuildMenu: true });
-    return { ok: false, error: persistenceError, ...failedState };
+    return { ok: false, error: persistenceError, ...pushState({ rebuildMenu: true }) };
   }
 
   lastUndo = undo;
@@ -498,50 +512,29 @@ function undoLatest(id, source = 'main') {
   if (persistenceError) {
     return { ok: false, reason: 'storage', error: persistenceError, state: snapshot() };
   }
-  const before = {
-    drinkCount: db.drinkCount,
-    consumedMl: db.consumedMl,
-    lastDrinkAt: db.lastDrinkAt,
-  };
-  const result = undoDrink(db, lastUndo, id, Date.now());
+  let result;
+  if (!commitChange(() => {
+    result = undoDrink(db, lastUndo, id, Date.now());
+    return result.ok;
+  })) {
+    return { ok: false, reason: 'storage', error: persistenceError, state: pushState({ rebuildMenu: true }) };
+  }
   if (result.ok) {
-    if (!save()) {
-      db.drinkCount = before.drinkCount;
-      db.consumedMl = before.consumedMl;
-      db.lastDrinkAt = before.lastDrinkAt;
-      const failedState = pushState({ rebuildMenu: true });
-      return { ok: false, reason: 'storage', error: persistenceError, state: failedState };
-    }
     lastUndo = null;
     reminderActive = false;
     if (source !== 'reminder' && isReminderVisible()) cancelVisibleReminder();
     if (!goalDone()) scheduleNext();
   }
-  const state = pushState({ rebuildMenu: true });
-  return { ...result, state };
+  return { ...result, state: pushState({ rebuildMenu: true }) };
 }
 
 function resetTodayProgress() {
   if (persistenceError) return { ok: false, error: persistenceError, state: snapshot() };
-  const previous = {
-    date: db.date,
-    drinkCount: db.drinkCount,
-    consumedMl: db.consumedMl,
-    lastDrinkAt: db.lastDrinkAt,
-    history: Object.fromEntries(
-      Object.entries(db.history).map(([date, value]) => [date, { ...value }]),
-    ),
-  };
-  resetToday(db, todayStr());
-  const previousUndo = lastUndo;
-  const previousNextAt = nextAt;
-  lastUndo = null;
-  nextAt = null;
-
-  if (!save()) {
-    Object.assign(db, previous);
-    lastUndo = previousUndo;
-    nextAt = previousNextAt;
+  if (!commitChange(() => {
+    resetToday(db, todayStr());
+    lastUndo = null;
+    nextAt = null;
+  })) {
     return { ok: false, error: persistenceError, state: pushState({ rebuildMenu: true }) };
   }
 
@@ -556,24 +549,16 @@ function saveProfile(input) {
   if (persistenceError) return { ok: false, error: persistenceError };
   const validation = validateProfileInput(input);
   if (!validation.ok) return validation;
-  const previousSettings = {
-    ...db.settings,
-    dndRanges: db.settings.dndRanges.map((range) => ({ ...range })),
-  };
-  const previousProfileCompleted = db.profileCompleted;
-  const previousNextAt = nextAt;
-  db.settings.weightKg = validation.profile.weightKg;
-  db.settings.cupMl = validation.profile.cupMl;
-  db.settings.intervalMin = validation.profile.intervalMin;
-  db.settings.workStart = validation.profile.workStart;
-  db.settings.workEnd = validation.profile.workEnd;
-  db.settings.dndRanges = validation.profile.dndRanges;
-  db.profileCompleted = true;
-  nextAt = null;
-  if (!save()) {
-    db.settings = previousSettings;
-    db.profileCompleted = previousProfileCompleted;
-    nextAt = previousNextAt;
+  if (!commitChange(() => {
+    db.settings.weightKg = validation.profile.weightKg;
+    db.settings.cupMl = validation.profile.cupMl;
+    db.settings.intervalMin = validation.profile.intervalMin;
+    db.settings.workStart = validation.profile.workStart;
+    db.settings.workEnd = validation.profile.workEnd;
+    db.settings.dndRanges = validation.profile.dndRanges;
+    db.profileCompleted = true;
+    nextAt = null;
+  })) {
     pushState({ rebuildMenu: true });
     return { ok: false, error: persistenceError };
   }
@@ -584,36 +569,30 @@ function saveProfile(input) {
 
 function setSetting(key, value) {
   if (persistenceError) return { ok: false, error: persistenceError, ...snapshot() };
-  const previousSettings = {
-    ...db.settings,
-    dndRanges: db.settings.dndRanges.map((range) => ({ ...range })),
-  };
-  const previousNextAt = nextAt;
   const booleanKeys = new Set(['weekend', 'sound', 'autoLaunch', 'sedentaryEnabled']);
+  const patch = {};
   if (booleanKeys.has(key)) {
     if (typeof value !== 'boolean') return snapshot();
-    db.settings[key] = !!value;
+    patch[key] = !!value;
   } else if (key === 'intervalMin') {
     const validation = validateIntervalMin(value);
     if (!validation.ok) return { ok: false, error: validation.error, ...snapshot() };
-    db.settings.intervalMin = validation.intervalMin;
+    patch.intervalMin = validation.intervalMin;
   } else if (key === 'workStart' || key === 'workEnd') {
     const candidateStart = key === 'workStart' ? value : db.settings.workStart;
     const candidateEnd = key === 'workEnd' ? value : db.settings.workEnd;
     const validation = validateWorkHours(candidateStart, candidateEnd);
     if (!validation.ok) return { ok: false, error: validation.error, ...snapshot() };
-    db.settings.workStart = validation.workStart;
-    db.settings.workEnd = validation.workEnd;
+    patch.workStart = validation.workStart;
+    patch.workEnd = validation.workEnd;
   } else {
     return snapshot();
   }
 
-  if (['workStart', 'workEnd', 'weekend', 'intervalMin'].includes(key)) {
-    nextAt = null;
-  }
-  if (!save()) {
-    db.settings = previousSettings;
-    nextAt = previousNextAt;
+  if (!commitChange(() => {
+    Object.assign(db.settings, patch);
+    if (['workStart', 'workEnd', 'weekend', 'intervalMin'].includes(key)) nextAt = null;
+  })) {
     return { ok: false, error: persistenceError, ...pushState({ rebuildMenu: true }) };
   }
   if (key === 'autoLaunch') {
@@ -674,8 +653,7 @@ function setupIpc() {
     reminderActive = false;
     if (action === 'drink') return doDrink('reminder');
     if (action === 'dismiss') scheduleNext();
-    const state = pushState();
-    return state;
+    return pushState();
   });
   ipcMain.handle('reminder-done', (event) => {
     if (!fromWindow(event, remWin)) return;
@@ -755,3 +733,12 @@ if (!gotLock) {
     if (!persistenceError) writeDatabaseAtomic();
   });
 }
+
+module.exports = {
+  doDrink,
+  undoLatest,
+  resetTodayProgress,
+  saveProfile,
+  setSetting,
+  snapshot,
+};
