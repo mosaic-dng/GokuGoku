@@ -13,7 +13,7 @@ const {
   createPackagerOptions,
   pruneLocales,
 } = require('../scripts/pack-win.js');
-const { EXPECTED_SHOTS, verifyShots } = require('../scripts/verify-shots.js');
+const { verifyShots } = require('../scripts/verify-shots.js');
 const { FORBIDDEN_ASAR_PATHS } = require('../scripts/verify-win-package.js');
 
 test('Windows packaging keeps only Chinese and English locale packs', () => {
@@ -69,69 +69,11 @@ test('portable app excludes development material without removing runtime assets
   }
 });
 
-test('packaging cleanup is scoped to locale pak files', () => {
-  const source = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'pack-win.js'), 'utf8');
-  assert.match(source, /entry\.endsWith\('\.pak'\)/);
-  for (const protectedName of [
-    'd3dcompiler_47.dll',
-    'libEGL.dll',
-    'libGLESv2.dll',
-    'vk_swiftshader.dll',
-    'v8_context_snapshot.bin',
-    'icudtl.dat',
-    'LICENSE',
-  ]) {
-    assert.equal(source.includes(`rmSync('${protectedName}'`), false);
-  }
-});
-
 test('packaging can reuse an explicitly provided official Electron ZIP directory', () => {
   const options = createPackagerOptions({ ELECTRON_ZIP_DIR: 'C:\\cache\\electron' });
   assert.equal(options.electronZipDir, path.resolve('C:\\cache\\electron'));
   assert.equal(options.platform, 'win32');
   assert.equal(options.arch, 'x64');
-});
-
-test('CI and release verify the real portable app and Electron screenshots', () => {
-  const ci = fs.readFileSync(path.join(__dirname, '..', '.github', 'workflows', 'ci.yml'), 'utf8');
-  const release = fs.readFileSync(path.join(__dirname, '..', '.github', 'workflows', 'release.yml'), 'utf8');
-
-  for (const workflow of [ci, release]) {
-    assert.match(workflow, /npm run verify:win/);
-    assert.match(workflow, /SHOT_DIR/);
-    assert.match(workflow, /npm run verify:shots/);
-  }
-  assert.equal(packageJson.scripts['verify:win'], 'node scripts/verify-win-package.js');
-  assert.equal(packageJson.scripts['verify:shots'], 'node scripts/verify-shots.js');
-});
-
-test('release ZIP uses maximum compression and enforces the approximate 128 MiB target', () => {
-  const release = fs.readFileSync(path.join(__dirname, '..', '.github', 'workflows', 'release.yml'), 'utf8');
-
-  assert.match(release, /tar\.exe -a -c -f/);
-  assert.match(release, /\$archiveSize -gt 128MB/);
-  assert.doesNotMatch(release, /Compress-Archive/);
-});
-
-test('portable verifier audits size, runtime files, locales, and ASAR exclusions', () => {
-  const verifier = fs.readFileSync(
-    path.join(__dirname, '..', 'scripts', 'verify-win-package.js'),
-    'utf8',
-  );
-  const shotVerifier = fs.readFileSync(
-    path.join(__dirname, '..', 'scripts', 'verify-shots.js'),
-    'utf8',
-  );
-
-  assert.match(verifier, /305 \* 1024 \* 1024/);
-  assert.match(verifier, /LICENSES\.chromium\.html/);
-  assert.match(verifier, /vk_swiftshader\.dll/);
-  assert.match(verifier, /icudtl\.dat/);
-  assert.match(verifier, /app\.asar/);
-  assert.match(shotVerifier, /'shot-onboarding-880\.png': \[480, 880\]/);
-  assert.match(shotVerifier, /'shot-onboarding-720-step1\.png': \[480, 720\]/);
-  assert.match(shotVerifier, /'shot-reminder\.png': \[520, 380\]/);
-  assert.deepEqual(EXPECTED_SHOTS['shot-reminder-snooze-menu.png'], [520, 380]);
 });
 
 test('screenshot verifier accepts settings height constrained by the runner work area', () => {

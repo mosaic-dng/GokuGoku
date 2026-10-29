@@ -126,15 +126,6 @@ npm run pack:win
 npm run verify:win
 ```
 
-当前 v1.3.0 验收结果：
-
-- `76 / 76` 项自动化测试通过。
-- Electron 验收覆盖 9 张截图，包括首次设置、两步设置、主界面、展开设置、喝水、撤销、提醒窗口和延后菜单。
-- 便携目录约 `301.90 MiB`。
-- 发布 ZIP 约 `126.07 MiB`。
-- 生产目录仅保留 `zh-CN.pak` 与 `en-US.pak`。
-- Chromium、GPU、D3D、Vulkan、ICU 与许可证文件均保留。
-
 维护者发布新版本前请阅读 [Windows 发布说明](docs/RELEASING.md)。
 
 ## 项目结构

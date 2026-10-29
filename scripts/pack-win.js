@@ -23,7 +23,6 @@ const APP_IGNORE_PATTERNS = [
   /^\/使用说明\.md$/,
   /^\/package-lock\.json$/,
   /^\/app\.asar$/,
-  /(?:^|\/)gen-assets\.js$/,
 ];
 
 function pruneLocales(portableRoot) {
