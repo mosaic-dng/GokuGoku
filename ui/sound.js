@@ -30,18 +30,15 @@ const Sound = (() => {
   }
   return {
     setEnabled(v) { enabled = !!v; },
-    // 打字机嘟嘟声（动森村民腔）
     blip() {
       if (!enabled) return;
       tone(620 + Math.random() * 320, { dur: 0.045, type: 'triangle', gain: 0.035 });
     },
-    // 弹窗登场「叮咚」
     pop() {
       if (!enabled) return;
       tone(659, { dur: 0.1, type: 'sine', gain: 0.08 });
       tone(880, { at: 0.09, dur: 0.16, type: 'sine', gain: 0.08 });
     },
-    // 咕嘟咕嘟 + 冒泡
     drink() {
       if (!enabled) return;
       tone([300, 140], { dur: 0.12, type: 'sine', gain: 0.12 });
@@ -49,18 +46,15 @@ const Sound = (() => {
       tone(784, { at: 0.30, dur: 0.09, type: 'triangle', gain: 0.06 });
       tone(1046, { at: 0.38, dur: 0.14, type: 'triangle', gain: 0.06 });
     },
-    // 达标小号角
     fanfare() {
       if (!enabled) return;
       const seq = [523, 659, 784, 1046];
       seq.forEach((f, i) => tone(f, { at: i * 0.11, dur: i === seq.length - 1 ? 0.34 : 0.1, type: 'triangle', gain: 0.09 }));
     },
-    // 推迟「呜哇」
     womp() {
       if (!enabled) return;
       tone([440, 300], { dur: 0.18, type: 'sine', gain: 0.08 });
     },
-    // 通用点击
     click() {
       if (!enabled) return;
       tone(500, { dur: 0.04, type: 'triangle', gain: 0.05 });

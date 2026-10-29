@@ -232,7 +232,7 @@ function createShotMode(runtime) {
     await mainWin.webContents.executeJavaScript("document.getElementById('drinkBtn').click(); void 0;");
     await new Promise((resolve) => setTimeout(resolve, 350));
     if (runtime.reminderActive || isReminderVisible()) throw new Error('外部打卡未关闭现有提醒');
-    app.__quitting = true;
+    runtime.quitting = true;
     app.quit();
   }
 
