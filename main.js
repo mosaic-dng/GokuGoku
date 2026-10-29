@@ -46,6 +46,8 @@ let reminderActive = false;
 let lastReminderIdx = -1;
 let persistenceError = null;
 let lastTickAt = null;
+let quitting = false;
+let trayTip = null;
 let db = createDefaultDatabase(todayStr());
 
 /* ---------- 数据 ---------- */
@@ -76,12 +78,9 @@ function load() {
     migratedFromVersion = result.migratedFromVersion;
     if (result.migratedFromVersion) {
       const migrationBackup = backupFile(result.migratedFromVersion);
-      let backupReady = false;
       try {
         ensureMigrationBackup(dataFile(), migrationBackup);
-        backupReady = true;
-      } catch { /* 下方阻止覆盖原数据 */ }
-      if (!backupReady) {
+      } catch {
         persistenceError = '旧版数据备份失败。请检查数据目录权限后重新启动，本课不会覆盖原文件。';
       }
     }
@@ -358,7 +357,7 @@ function createWindows() {
     if ((!IS_HIDDEN_LAUNCH || !db.profileCompleted) && !process.env.SHOT) mainWin.show();
   });
   mainWin.on('close', (event) => {
-    if (!app.__quitting) {
+    if (!quitting) {
       event.preventDefault();
       hideToTray();
     }
@@ -459,7 +458,7 @@ function rebuildTrayMenu() {
     {
       label: '退出（本课解散）',
       click: () => {
-        app.__quitting = true;
+        quitting = true;
         app.quit();
       },
     },
@@ -474,8 +473,8 @@ function updateTray(state) {
     : db.profileCompleted
     ? `水分補給課｜今日 ${state.drinkCount}/${state.targetCups} 杯 · ${state.consumedMl}/${state.workGoalMl}ml${state.paused ? '（静音中）' : ''}`
     : '水分補給課｜等待完成首次设置';
-  if (tray.__tip !== text) {
-    tray.__tip = text;
+  if (trayTip !== text) {
+    trayTip = text;
     tray.setToolTip(text);
   }
 }
@@ -936,7 +935,7 @@ async function shotMode() {
   await mainWin.webContents.executeJavaScript("document.getElementById('drinkBtn').click(); void 0;");
   await new Promise((resolve) => setTimeout(resolve, 350));
   if (reminderActive || isReminderVisible()) throw new Error('外部打卡未关闭现有提醒');
-  app.__quitting = true;
+  quitting = true;
   app.quit();
 }
 
@@ -949,6 +948,12 @@ if (!gotLock) {
   app.setAppUserModelId('com.suibunhokyuka.gokugoku');
   app.whenReady().then(() => {
     load();
+    // 便携目录搬走后，Run 键仍指向旧 exe；开机项开着就按当前路径重写。
+    if (db.settings.autoLaunch) {
+      try {
+        app.setLoginItemSettings({ openAtLogin: true, args: ['--hidden'] });
+      } catch { /* 开发环境可能不支持 */ }
+    }
     createWindows();
     createTray();
     setupIpc();
@@ -957,14 +962,14 @@ if (!gotLock) {
     if (process.env.SHOT) {
       shotMode().catch((error) => {
         console.error(error);
-        app.__quitting = true;
+        quitting = true;
         app.exit(1);
       });
     }
   });
-  app.on('window-all-closed', () => { /* 托盘常驻，不退出 */ });
+  app.on('window-all-closed', () => {});
   app.on('before-quit', () => {
-    app.__quitting = true;
+    quitting = true;
     clearInterval(tickTimer);
     clearTimeout(saveTimer);
     if (!persistenceError) writeDatabaseAtomic();

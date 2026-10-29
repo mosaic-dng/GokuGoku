@@ -14,6 +14,8 @@ let settingsDraftReady = false;
 let setupDraftReady = false;
 let intervalDraftDirty = false;
 let setupStep = 1;
+let goldShown = false;
+let shownStorageError = null;
 
 /* ---------- 小杯子 ---------- */
 function cupSVG(filled) {
@@ -368,8 +370,8 @@ function render(state) {
   $('#onboarding').classList.toggle('show', S.profileRequired);
   if (S.storageError) $('#setupError').textContent = S.storageError;
   $('#drinkBtn').disabled = !!S.storageError || S.profileRequired;
-  if (S.storageError && window.__shownStorageError !== S.storageError) {
-    window.__shownStorageError = S.storageError;
+  if (S.storageError && shownStorageError !== S.storageError) {
+    shownStorageError = S.storageError;
     toast(S.storageError, { duration: 30_000 });
   }
   $('#cupNum').textContent = S.drinkCount;
@@ -390,11 +392,11 @@ function render(state) {
   updateSetupPreview();
   updateSettingsPreview();
 
-  if (previousCups >= 0 && S.drinkCount > previousCups && S.goalDone && !window.__goldShown) {
-    window.__goldShown = true;
+  if (previousCups >= 0 && S.drinkCount > previousCups && S.goalDone && !goldShown) {
+    goldShown = true;
     Sound.fanfare();
   }
-  if (S.drinkCount === 0) window.__goldShown = false;
+  if (S.drinkCount === 0) goldShown = false;
   lastCups = S.drinkCount;
 }
 
