@@ -14,7 +14,6 @@ const {
   getReminderAvailability,
   validateIntervalMin,
   validateProfileInput,
-  validateWorkHours,
 } = require('./lib/hydration.js');
 const {
   createDefaultDatabase,
@@ -137,7 +136,6 @@ function snapshot() {
   const now = new Date();
   const availability = getReminderAvailability(now, db.settings);
   const metrics = derived();
-  const undo = activeUndo(now.getTime());
   const paused = Number(pausedUntil) > now.getTime();
 
   return {
@@ -146,7 +144,6 @@ function snapshot() {
     drinkCount: db.drinkCount,
     targetCups: metrics.targetCups,
     consumedMl: db.consumedMl,
-    dailyGoalMl: metrics.dailyGoalMl,
     workGoalMl: metrics.workGoalMl,
     weightKg: db.settings.weightKg,
     cupMl: db.settings.cupMl,
@@ -167,18 +164,13 @@ function snapshot() {
     goalDone: goalDone(),
     overdue: availability.allowed && !!nextAt && now.getTime() >= nextAt && !goalDone(),
     reminderActive,
-    undoAvailable: !!undo,
-    undoId: undo ? undo.id : null,
-    undoUntil: undo ? undo.expiresAt : null,
     storageError: persistenceError,
   };
 }
 
 function pushState({ rebuildMenu = false } = {}) {
   const state = snapshot();
-  for (const win of [mainWin, remWin]) {
-    if (win && !win.isDestroyed()) win.webContents.send('state', state);
-  }
+  if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('state', state);
   updateTray(state);
   if (rebuildMenu) rebuildTrayMenu();
   return state;
@@ -505,7 +497,7 @@ function doDrink(source = 'main') {
   if (!goalDone()) scheduleNext();
   else nextAt = null;
   const state = pushState({ rebuildMenu: true });
-  return { ok: true, ...state, source, undoId: id, undoUntil: lastUndo.expiresAt };
+  return { ok: true, ...state, undoId: id };
 }
 
 function undoLatest(id, source = 'main') {
@@ -578,20 +570,13 @@ function setSetting(key, value) {
     const validation = validateIntervalMin(value);
     if (!validation.ok) return { ok: false, error: validation.error, ...snapshot() };
     patch.intervalMin = validation.intervalMin;
-  } else if (key === 'workStart' || key === 'workEnd') {
-    const candidateStart = key === 'workStart' ? value : db.settings.workStart;
-    const candidateEnd = key === 'workEnd' ? value : db.settings.workEnd;
-    const validation = validateWorkHours(candidateStart, candidateEnd);
-    if (!validation.ok) return { ok: false, error: validation.error, ...snapshot() };
-    patch.workStart = validation.workStart;
-    patch.workEnd = validation.workEnd;
   } else {
     return snapshot();
   }
 
   if (!commitChange(() => {
     Object.assign(db.settings, patch);
-    if (['workStart', 'workEnd', 'weekend', 'intervalMin'].includes(key)) nextAt = null;
+    if (['weekend', 'intervalMin'].includes(key)) nextAt = null;
   })) {
     return { ok: false, error: persistenceError, ...pushState({ rebuildMenu: true }) };
   }
@@ -613,9 +598,7 @@ function setupIpc() {
   };
   const invalidWindowRequest = () => ({ ok: false, error: '无效窗口请求' });
   ipcMain.handle('get-state', (event) => (
-    fromWindow(event, mainWin) || fromWindow(event, remWin)
-      ? snapshot()
-      : invalidWindowRequest()
+    fromWindow(event, mainWin) ? snapshot() : invalidWindowRequest()
   ));
   ipcMain.handle('drink', (event) => (
     fromWindow(event, mainWin) ? doDrink('main') : invalidWindowRequest()

@@ -43,8 +43,8 @@ function session() {
   delete require.cache[mainPath];
   const main = require('../main.js');
   assert.equal(main.saveProfile(profile).ok, true);
-  assert.equal(main.doDrink('main').ok, true);
-  const before = main.snapshot();
+  const before = main.doDrink('main');
+  assert.equal(before.ok, true);
   userDataPath = path.join(userDataDir, 'missing', 'data');
   return { main, before };
 }
@@ -56,19 +56,19 @@ test('a failed drink save restores intake and clears the undo token', () => {
   assert.match(failed.error, /数据保存失败/);
   assert.equal(failed.drinkCount, before.drinkCount);
   assert.equal(failed.consumedMl, before.consumedMl);
-  assert.equal(failed.undoAvailable, false);
+  assert.notEqual(failed.undoId, before.undoId);
 });
 
 test('a failed save restores undo, reset, profile, and settings', () => {
   const cases = [
-    (main) => main.undoLatest(main.snapshot().undoId, 'main'),
+    (main, before) => main.undoLatest(before.undoId, 'main'),
     (main) => main.resetTodayProgress(),
     (main) => main.saveProfile({ ...profile, weightKg: 80 }),
     (main) => main.setSetting('intervalMin', 15),
   ];
   for (const mutate of cases) {
     const { main, before } = session();
-    const failed = mutate(main);
+    const failed = mutate(main, before);
     assert.equal(failed.ok, false);
     assert.match(failed.error, /数据保存失败/);
     const state = main.snapshot();
@@ -77,7 +77,6 @@ test('a failed save restores undo, reset, profile, and settings', () => {
     assert.equal(state.weightKg, before.weightKg);
     assert.equal(state.intervalMin, before.intervalMin);
     assert.equal(state.nextAt, before.nextAt);
-    assert.equal(state.undoAvailable, before.undoAvailable);
   }
 });
 

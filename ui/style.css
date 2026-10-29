@@ -19,10 +19,8 @@
   --mint-lo: #11a89b;
   --yellow: #ffcc00;
   --orange: #e59266;
-  --pink: #f8a6b2;
   --blue: #889df0;
   --danger: #e05a5a;
-  --ok: #6fba2c;
   --btn-shadow: #bdaea0;      /* 3D 按钮底座 */
   --input-shadow: #d4c9b4;
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
@@ -92,7 +90,6 @@ body {
   border: 2px solid rgba(159, 146, 125, 0.35);
   border-radius: 25px;
   padding: 20px 22px;
-  transition: transform 0.3s var(--ease);
 }
 .card.pattern {
   background-image:
@@ -151,22 +148,6 @@ body {
 .switch.on::after { left: 25px; }
 .switch:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
 
-/* ---------- 下拉 ---------- */
-select {
-  font-family: var(--font);
-  appearance: none;
-  height: 40px; padding: 0 29px 0 15px;
-  border-radius: 50px;
-  border: 2.5px solid var(--faint);
-  background: #fffdf4 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239f927d' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center;
-  color: var(--ink); font-size: 14px; font-weight: 700;
-  cursor: pointer; outline: none;
-  box-shadow: 0 2px 0 0 var(--input-shadow);
-  transition: border-color 0.15s var(--ease);
-}
-select:hover { border-color: #a89878; }
-select:focus { border-color: var(--yellow); }
-
 /* ---------- 输入框 ---------- */
 input {
   height: 42px;
@@ -203,7 +184,6 @@ input[type="number"] { appearance: textfield; }
   text-shadow: 0 1px 0 rgba(122, 74, 32, 0.35);
 }
 
-/* ---------- 滚动条淡入之类的小工具 ---------- */
 .tag {
   display: inline-flex; align-items: center; gap: 4px;
   height: 24px; padding: 0 12px;

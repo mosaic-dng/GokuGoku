@@ -430,7 +430,7 @@ async function saveManualInterval() {
     return;
   }
   if (control.value === submittedValue) intervalDraftDirty = false;
-  $('#settingsError').textContent = validationMessage(validateDndRanges(settingsRanges));
+  updateSettingsPreview();
 }
 
 /* ---------- 事件 ---------- */
