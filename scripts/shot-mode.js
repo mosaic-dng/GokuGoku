@@ -64,7 +64,6 @@ function createShotMode(runtime) {
     await assertSetupFits('480x880 单页');
     const onboarding880 = (await mainWin.webContents.capturePage()).toPNG();
     fs.writeFileSync(path.join(out, 'shot-onboarding-880.png'), onboarding880);
-    fs.writeFileSync(path.join(out, 'shot-onboarding.png'), onboarding880);
 
     setShotWindowSize(480, 720);
     await new Promise((resolve) => setTimeout(resolve, 450));

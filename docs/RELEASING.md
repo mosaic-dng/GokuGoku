@@ -8,22 +8,6 @@ GokuGoku-v1.2.3-Windows-x64.zip
 
 ZIP 内包含完整的便携目录。`GokuGoku.exe` 依赖同目录中的 DLL、资源包和 `resources` 文件夹，因此不单独发布裸 EXE。
 
-## 首次发布 v1.1.0
-
-先确保自动发布工作流已经进入远程 `main`，然后在最新的 `main` 上运行：
-
-```powershell
-git switch main
-git pull --ff-only
-npm ci
-npm test
-npm run pack:win
-git tag -a v1.1.0 -m "GokuGoku v1.1.0"
-git push origin v1.1.0
-```
-
-推送标签后，在仓库的 **Actions → Release** 查看执行结果。工作流成功后，`v1.1.0` Release 会自动生成说明并包含 `GokuGoku-v1.1.0-Windows-x64.zip`。
-
 ## 发布后续版本
 
 根据变更范围选择一种版本升级：

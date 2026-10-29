@@ -29,7 +29,7 @@ const FORBIDDEN_ASAR_PATHS = [
   /^\/(?:test|docs|node_modules|\.github)(?:\/|$)/,
   /^\/scripts\/(?!shot-mode\.js$).+/,
   /^\/(?:README\.md|使用说明\.md|package-lock\.json)$/,
-  /(?:^|\/)(?:\.shots|\.shot-data|\.tmp-|gen-assets\.js)/,
+  /(?:^|\/)(?:\.shots|\.shot-data|\.tmp-)/,
 ];
 
 function directorySize(directory) {
