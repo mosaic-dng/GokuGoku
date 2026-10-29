@@ -339,7 +339,7 @@ test('Electron shot mode checks both onboarding layouts for real overflow', () =
   assert.match(shotModeJs, /document\.getElementById\('snoozeMenu'\)\.getBoundingClientRect\(\)/);
   assert.match(shotModeJs, /延后菜单超出提醒窗口/);
   assert.match(mainJs, /app\.commandLine\.appendSwitch\('force-device-scale-factor', '1'\)/);
-  assert.match(mainJs, /if \(process\.env\.SHOT\) \{\n\s+const \{ createShotMode \} = require\('\.\/scripts\/shot-mode\.js'\);/);
+  assert.match(mainJs, /if \(process\.env\.SHOT\) \{\r?\n\s+const \{ createShotMode \} = require\('\.\/scripts\/shot-mode\.js'\);/);
   assert.match(mainJs, /shotMode\(\)\.catch\(\(error\) =>/);
   assert.match(mainJs, /app\.exit\(1\)/);
   assert.doesNotMatch(mainJs, /function setShotWindowSize/);
