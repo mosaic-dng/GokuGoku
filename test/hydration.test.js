@@ -9,8 +9,51 @@ const {
   validateWorkHours,
   validateIntervalMin,
   validateProfileInput,
+  validateProfileNumbers,
   validateDndRanges,
 } = require('../lib/hydration.js');
+
+test('default setup and settings preview targets stay on the shared formula', () => {
+  assert.deepEqual(calculateTargets({
+    weightKg: 60,
+    cupMl: 200,
+    workStart: '09:00',
+    workEnd: '18:00',
+  }), {
+    dailyGoalMl: 1800,
+    workGoalMl: 1000,
+    targetCups: 5,
+  });
+
+  const settings = calculateTargets({
+    weightKg: 60,
+    cupMl: 300,
+    workStart: '09:00',
+    workEnd: '17:00',
+  });
+  assert.equal(settings.dailyGoalMl, 1800);
+  assert.equal(settings.workGoalMl, 900);
+  assert.equal(settings.targetCups, 3);
+
+  assert.equal(calculateTargets({
+    weightKg: 60,
+    cupMl: Number.POSITIVE_INFINITY,
+    workStart: '09:00',
+    workEnd: '18:00',
+  }).targetCups, 1);
+});
+
+test('profile number checks are the shared weight, cup, and interval gate', () => {
+  assert.equal(validateProfileNumbers(10, 200, 45).error, '体重请输入 30–300kg');
+  assert.equal(validateProfileNumbers(60, 10, 45).error, '每次喝水量请输入 50–1000ml');
+  assert.equal(validateProfileNumbers(60, 200, 0).error, '催水间隔请输入 1–1440 分钟的整数');
+  assert.deepEqual(validateProfileNumbers(60.5, 250, '75'), {
+    ok: true,
+    weightKg: 60.5,
+    cupMl: 250,
+    intervalMin: 75,
+  });
+});
 
 test('60kg over an 8 hour workday produces 1800ml daily and 900ml at work', () => {
   const result = calculateTargets({

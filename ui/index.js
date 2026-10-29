@@ -106,33 +106,8 @@ function renderTimer() {
 }
 
 /* ---------- 目标预览 ---------- */
-function parseClock(value) {
-  if (!/^\d{2}:\d{2}$/.test(value || '')) return null;
-  const [hours, minutes] = value.split(':').map(Number);
-  if (hours > 23 || minutes > 59) return null;
-  return hours * 60 + minutes;
-}
-
-function validateRanges(ranges) {
-  const parsed = [];
-  for (const range of ranges) {
-    const start = parseClock(range.start);
-    const end = parseClock(range.end);
-    if (start === null || end === null || end <= start) return '免打扰结束时间必须晚于开始时间';
-    parsed.push({ start, end });
-  }
-  parsed.sort((a, b) => a.start - b.start);
-  for (let index = 1; index < parsed.length; index += 1) {
-    if (parsed[index].start < parsed[index - 1].end) return '免打扰时段不能重叠';
-  }
-  return '';
-}
-
-function validateProfileNumbers(weight, cup, interval) {
-  if (!Number.isFinite(weight) || weight < 30 || weight > 300) return '体重请输入 30–300kg';
-  if (!Number.isFinite(cup) || cup < 50 || cup > 1000) return '每次喝水量请输入 50–1000ml';
-  if (!Number.isInteger(interval) || interval < 1 || interval > 1440) return '催水间隔请输入 1–1440 分钟的整数';
-  return '';
+function validationMessage(result) {
+  return result.ok ? '' : result.error;
 }
 
 function renderProgress() {
@@ -155,22 +130,6 @@ function showDrinkFeedback(previousCups) {
   mascot.classList.add('boing');
 }
 
-function validateWorkHours(workStart, workEnd) {
-  const start = parseClock(workStart);
-  const end = parseClock(workEnd);
-  if (start === null || end === null) return '上下班时间请使用 HH:MM 格式';
-  if (end <= start) return '结束时间必须晚于开始时间';
-  return '';
-}
-
-function calculatePreview(weight, cup, workStart, workEnd) {
-  const dailyGoalMl = Math.round(Number(weight) * 30);
-  const workMinutes = Math.max(0, parseClock(workEnd) - parseClock(workStart));
-  const workGoalMl = Math.min(1200, Math.max(800, Math.round((dailyGoalMl * workMinutes / (16 * 60)) / 50) * 50));
-  const targetCups = Math.ceil(workGoalMl / Number(cup));
-  return { dailyGoalMl, workGoalMl, targetCups };
-}
-
 function updateSetupPreview() {
   if (S && S.storageError) {
     $('#setupError').textContent = S.storageError;
@@ -181,11 +140,11 @@ function updateSetupPreview() {
   const interval = Number($('#setupInterval').value);
   const workStart = $('#setupStart').value;
   const workEnd = $('#setupEnd').value;
-  const numericError = validateProfileNumbers(weight, cup, interval);
-  const workError = validateWorkHours(workStart, workEnd);
-  $('#setupError').textContent = numericError || workError || validateRanges(setupRanges);
+  const numericError = validationMessage(validateProfileNumbers(weight, cup, interval));
+  const workError = validationMessage(validateWorkHours(workStart, workEnd));
+  $('#setupError').textContent = numericError || workError || validationMessage(validateDndRanges(setupRanges));
   if (numericError || workError) return;
-  const preview = calculatePreview(weight, cup, workStart, workEnd);
+  const preview = calculateTargets({ weightKg: weight, cupMl: cup, workStart, workEnd });
   $('#previewDaily').textContent = `${preview.dailyGoalMl}ml`;
   $('#previewWork').textContent = `${preview.workGoalMl}ml`;
   $('#previewCups').textContent = `${preview.targetCups}杯`;
@@ -203,11 +162,11 @@ function updateSettingsPreview() {
   const interval = Number($('#intervalInput').value);
   const workStart = $('#selStart').value;
   const workEnd = $('#selEnd').value;
-  const numericError = validateProfileNumbers(weight, cup, interval);
-  const workError = validateWorkHours(workStart, workEnd);
-  $('#settingsError').textContent = numericError || workError || validateRanges(settingsRanges);
+  const numericError = validationMessage(validateProfileNumbers(weight, cup, interval));
+  const workError = validationMessage(validateWorkHours(workStart, workEnd));
+  $('#settingsError').textContent = numericError || workError || validationMessage(validateDndRanges(settingsRanges));
   if (numericError || workError) return;
-  const preview = calculatePreview(weight, cup, workStart, workEnd);
+  const preview = calculateTargets({ weightKg: weight, cupMl: cup, workStart, workEnd });
   $('#sumDaily').textContent = `${preview.dailyGoalMl}ml`;
   $('#sumWork').textContent = `${preview.workGoalMl}ml`;
   $('#sumCups').textContent = `${S.drinkCount}/${preview.targetCups}杯`;
@@ -410,11 +369,16 @@ async function submitProfile(mode) {
   const workEnd = $(setup ? '#setupEnd' : '#selEnd').value;
   const ranges = setup ? setupRanges : settingsRanges;
   const errorNode = $(setup ? '#setupError' : '#settingsError');
-  const localError = validateProfileNumbers(weight, cup, interval)
-    || validateWorkHours(workStart, workEnd)
-    || validateRanges(ranges);
-  if (localError) {
-    errorNode.textContent = localError;
+  const validation = validateProfileInput({
+    weightKg: weight,
+    cupMl: cup,
+    intervalMin: interval,
+    workStart,
+    workEnd,
+    dndRanges: ranges,
+  });
+  if (!validation.ok) {
+    errorNode.textContent = validation.error;
     return;
   }
 
@@ -454,7 +418,7 @@ async function saveManualInterval() {
   const interval = Number(submittedValue);
   const weight = Number($('#weightInput').value);
   const cup = Number($('#cupInput').value);
-  const numericError = validateProfileNumbers(weight, cup, interval);
+  const numericError = validationMessage(validateProfileNumbers(weight, cup, interval));
   if (numericError) {
     $('#settingsError').textContent = numericError;
     return;
@@ -466,7 +430,7 @@ async function saveManualInterval() {
     return;
   }
   if (control.value === submittedValue) intervalDraftDirty = false;
-  $('#settingsError').textContent = validateRanges(settingsRanges);
+  $('#settingsError').textContent = validationMessage(validateDndRanges(settingsRanges));
 }
 
 /* ---------- 事件 ---------- */
@@ -524,11 +488,11 @@ window.addEventListener('DOMContentLoaded', () => {
   $('#settingsAddDnd').addEventListener('click', () => addRange(settingsRanges, $('#settingsDnd'), updateSettingsPreview));
   $('#setupAddDnd').addEventListener('click', addSetupRange);
   $('#setupNext').addEventListener('click', () => {
-    const error = validateProfileNumbers(
+    const error = validationMessage(validateProfileNumbers(
       Number($('#setupWeight').value),
       Number($('#setupCup').value),
       Number($('#setupInterval').value),
-    ) || validateWorkHours($('#setupStart').value, $('#setupEnd').value);
+    )) || validationMessage(validateWorkHours($('#setupStart').value, $('#setupEnd').value));
     $('#setupProfileError').textContent = error;
     if (!error) setSetupStep(2);
   });
