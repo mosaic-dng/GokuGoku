@@ -30,7 +30,6 @@ const Sound = (() => {
   }
   return {
     setEnabled(v) { enabled = !!v; },
-    get enabled() { return enabled; },
     // 打字机嘟嘟声（动森村民腔）
     blip() {
       if (!enabled) return;
