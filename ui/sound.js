@@ -8,7 +8,6 @@ const Sound = (() => {
     if (ctx.state === 'suspended') ctx.resume();
     return ctx;
   }
-  // 单音：freq 可为 [起始, 结束] 做滑音
   function tone(freq, { at = 0, dur = 0.09, type = 'sine', gain = 0.09 } = {}) {
     const c = ac();
     const t0 = c.currentTime + at;
