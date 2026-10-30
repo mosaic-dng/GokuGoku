@@ -94,6 +94,7 @@ function createShotMode(runtime) {
     const startDraft = await mainWin.webContents.executeJavaScript(`
       (() => {
         const control = document.getElementById('selStart');
+        control.closest('.collapse-inner').inert = false;
         control.focus();
         const draft = control.value === '10:30' ? '11:15' : '10:30';
         control.value = draft;
@@ -115,6 +116,7 @@ function createShotMode(runtime) {
         const control = document.getElementById('selStart');
         control.value = ${JSON.stringify(db.settings.workStart)};
         control.blur();
+        control.closest('.collapse-inner').inert = true;
       })()
     `);
 
