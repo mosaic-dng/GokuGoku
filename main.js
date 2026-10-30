@@ -368,7 +368,6 @@ function createWindows() {
   lockWindowNavigation(remWin, REMINDER_PAGE_URL);
   remWin.loadFile(path.join(__dirname, 'ui', 'reminder.html'));
   remWin.setAlwaysOnTop(true, 'screen-saver');
-  remWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 }
 
 function hideToTray() {
@@ -585,7 +584,7 @@ function setSetting(key, value) {
       app.setLoginItemSettings({ openAtLogin: !!value, args: ['--hidden'] });
     } catch { /* 开发环境可能不支持 */ }
   }
-  return { ok: true, ...pushState({ rebuildMenu: key === 'weekend' }) };
+  return { ok: true, ...pushState() };
 }
 
 /* ---------- IPC ---------- */
