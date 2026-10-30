@@ -240,8 +240,8 @@
       <div class="name">水分補給課<small>SUIBUN HOKYU DIV.</small></div>
     </div>
     <div class="winbtns">
-      <button id="btnMin" title="最小化">−</button>
-      <button id="btnHide" class="close" title="缩进托盘继续潜伏">×</button>
+      <button id="btnMin" title="最小化" aria-label="最小化">−</button>
+      <button id="btnHide" class="close" title="缩进托盘继续潜伏" aria-label="缩进托盘继续潜伏">×</button>
     </div>
   </div>
 
@@ -302,11 +302,11 @@
     </div>
 
     <section class="card settings" id="settings">
-      <button class="collapse-head" id="collapseHead">
+      <button class="collapse-head" id="collapseHead" aria-expanded="false">
         <span>⚙ 课内设定</span><span class="arrow">▼</span>
       </button>
       <div class="collapse-body">
-        <div class="collapse-inner">
+        <div class="collapse-inner" inert>
           <div class="field col">
             <div class="fname">个人补水档案</div>
             <div class="profile-grid">
@@ -334,7 +334,7 @@
             <div class="fname">每日免打扰</div>
             <div class="dnd-list" id="settingsDnd"></div>
             <button class="add-range" id="settingsAddDnd">＋ 添加免打扰时段</button>
-            <div class="inline-error" id="settingsError"></div>
+            <div class="inline-error" id="settingsError" role="status" aria-live="polite"></div>
             <button class="btn btn-ghost save-profile" id="saveProfileBtn">保存个人设定</button>
           </div>
 
@@ -367,11 +367,11 @@
     本课对口渴负全部责任 · © 水分補給課
   </footer>
 
-  <div id="toast"><span id="toastText"></span><button id="toastAction">撤销</button></div>
+  <div id="toast" role="status" aria-live="polite"><span id="toastText"></span><button id="toastAction">撤销</button></div>
 
-  <section class="setup-overlay" id="onboarding" aria-modal="true">
+  <section class="setup-overlay" id="onboarding" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
     <div class="setup-card" data-step="1">
-      <h1>先量身定做一份<br>喝水课表吧</h1>
+      <h1 id="onboardingTitle">先量身定做一份<br>喝水课表吧</h1>
       <div class="setup-step-label" id="setupStepLabel">第 1 步 · 个人课表</div>
 
       <div class="setup-pane setup-profile-pane" data-step="1">
@@ -388,7 +388,7 @@
             <input id="setupEnd" type="time" step="60" value="18:00" aria-label="首次设置上班结束时间">
           </div>
         </div>
-        <div class="inline-error" id="setupProfileError"></div>
+        <div class="inline-error" id="setupProfileError" role="status" aria-live="polite"></div>
         <button class="btn btn-primary setup-next" id="setupNext">下一步</button>
       </div>
 
@@ -405,7 +405,7 @@
           <div>计划杯数<b id="previewCups">5杯</b></div>
           <div>催水间隔<b id="previewInterval">45分钟</b></div>
         </div>
-        <div class="inline-error" id="setupError"></div>
+        <div class="inline-error" id="setupError" role="status" aria-live="polite"></div>
         <div class="setup-actions">
           <button class="btn btn-ghost setup-back" id="setupBack">上一步</button>
           <button class="btn btn-primary setup-submit" id="setupSubmit">保存课表，开始补水</button>

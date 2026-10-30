@@ -5,7 +5,6 @@ const $ = (selector) => document.querySelector(selector);
 const pick = (items) => items[Math.floor(Math.random() * items.length)];
 
 let S = null;
-let lastCups = -1;
 let toastTimer = null;
 let toastUndoId = null;
 let settingsRanges = [];
@@ -28,14 +27,14 @@ function cupSVG(filled) {
   </svg>`;
 }
 
-function renderCups() {
+function renderCups(previousCups) {
   const box = $('#cups');
   const total = Math.max(S.targetCups, S.drinkCount);
   const signature = `${S.drinkCount}/${total}`;
   if (box.dataset.sig === signature) return;
   box.innerHTML = Array.from({ length: total }, (_, index) => cupSVG(index < S.drinkCount)).join('');
   box.dataset.sig = signature;
-  if (S.drinkCount > lastCups && lastCups >= 0) {
+  if (S.drinkCount > previousCups && previousCups >= 0) {
     const cup = box.children[S.drinkCount - 1];
     if (cup) cup.classList.add('pop');
   }
@@ -326,7 +325,11 @@ function render(state) {
   Sound.setEnabled(S.sound);
   syncProfileDraft(state);
 
-  $('#onboarding').classList.toggle('show', S.profileRequired);
+  const onboarding = $('#onboarding');
+  const opening = S.profileRequired && !onboarding.classList.contains('show');
+  onboarding.classList.toggle('show', S.profileRequired);
+  $('.content').inert = !!S.profileRequired;
+  if (opening) onboarding.querySelector('input').focus({ preventScroll: true });
   if (S.storageError) $('#setupError').textContent = S.storageError;
   $('#drinkBtn').disabled = !!S.storageError || S.profileRequired;
   if (S.storageError && shownStorageError !== S.storageError) {
@@ -336,7 +339,7 @@ function render(state) {
   $('#cupNum').textContent = S.drinkCount;
   $('#goalNum').textContent = S.targetCups;
   $('#drinkBtn').textContent = `喝了喝了！（+${S.cupMl}ml）`;
-  renderCups();
+  renderCups(previousCups);
   renderProgress();
   renderTitle();
   renderFace();
@@ -356,7 +359,6 @@ function render(state) {
     Sound.fanfare();
   }
   if (S.drinkCount === 0) goldShown = false;
-  lastCups = S.drinkCount;
 }
 
 /* ---------- 保存 ---------- */
@@ -466,9 +468,13 @@ window.addEventListener('DOMContentLoaded', () => {
     newQuote();
   });
 
+  $('#collapseHead').setAttribute('aria-expanded', String($('#settings').classList.contains('open')));
+  $('.collapse-inner').inert = !$('#settings').classList.contains('open');
   $('#collapseHead').addEventListener('click', () => {
     Sound.click();
     const open = $('#settings').classList.toggle('open');
+    $('#collapseHead').setAttribute('aria-expanded', String(open));
+    $('.collapse-inner').inert = !open;
     window.api.setExpand(open);
   });
   $('#weightInput').addEventListener('input', updateSettingsPreview);
