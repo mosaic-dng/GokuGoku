@@ -10,6 +10,7 @@ let confirmTimer = null;
 let countdownTimer = null;
 let closing = false;
 let undoId = null;
+let drinking = false;
 
 function snoozeOptions() {
   return [...document.querySelectorAll('.snooze-option')];
@@ -93,7 +94,9 @@ function resetView() {
   closeSnoozeMenu();
   closing = false;
   undoId = null;
+  drinking = false;
   $('#btns').classList.remove('show');
+  $('#btns').inert = true;
   $('#meta').classList.remove('show');
   $('#confirm').classList.remove('show');
   $('#btnUndo').style.display = '';
@@ -116,6 +119,7 @@ function show(payload) {
     typewriter(payload.text, () => {
       $('#meta').classList.add('show');
       $('#btns').classList.add('show');
+      $('#btns').inert = false;
     });
   }, reducedMotion.matches ? 0 : 380);
 }
@@ -131,8 +135,11 @@ function finishClose(delay = 320) {
 async function act(action, snoozeMinutes) {
   if (closing) return;
   if (action === 'drink') {
+    if (drinking) return;
+    drinking = true;
     clearTimers();
     $('#btns').classList.remove('show');
+    $('#btns').inert = true;
     const result = await window.api.reminderAction('drink');
     if (!result.ok) {
       $('#confirmText').textContent = result.error || '本次记录失败，请检查数据目录。';
@@ -202,6 +209,10 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   document.addEventListener('click', (event) => {
     if (!$('#snoozeWrap').contains(event.target)) closeSnoozeMenu();
+  });
+  $('#snoozeWrap').addEventListener('focusout', (event) => {
+    if ($('#snoozeWrap').contains(event.relatedTarget)) return;
+    closeSnoozeMenu();
   });
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !$('#snoozeMenu').hidden) {

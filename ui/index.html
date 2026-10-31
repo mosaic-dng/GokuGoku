@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="style.css">
 <style>
   .hero { display: flex; align-items: center; gap: 18px; min-height: 174px; padding: 20px 22px 18px; }
-  #mascotBox { flex: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  #mascotBox { flex: none; border: none; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   #mascot { display: block; filter: drop-shadow(0 6px 8px rgba(17, 168, 155, 0.25)); animation: floaty 3.4s ease-in-out infinite; }
   #mascotBox.boing #mascot { animation: boing 0.5s var(--ease); }
   @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
@@ -247,7 +247,7 @@
 
   <main class="content">
     <section class="card pattern hero">
-      <div id="mascotBox" title="戳一下">
+      <button id="mascotBox" type="button" title="戳一下" aria-label="戳一下">
         <svg id="mascot" viewBox="0 0 120 120" width="138" height="138">
           <defs>
             <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
@@ -275,7 +275,7 @@
             <path d="M92,60 c3,5 7,9 7,13 a7,7 0 1,1 -14,0 c0,-4 4,-8 7,-13 z" fill="#889df0"/>
           </g>
         </svg>
-      </div>
+      </button>
       <div class="bubble"><span id="quote">……</span></div>
     </section>
 
