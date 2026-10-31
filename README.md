@@ -66,10 +66,10 @@
 
 ## 下载与使用
 
-前往 [GitHub Releases](https://github.com/mosaic-dng/GokuGoku/releases/latest) 下载：
+前往 [GitHub Releases](https://github.com/mosaic-dng/GokuGoku/releases/latest) 下载。正式版本使用 `v1.2.3` 格式的标签，产物命名为：
 
 ```text
-GokuGoku-v1.3.0-Windows-x64.zip
+GokuGoku-v1.2.3-Windows-x64.zip
 ```
 
 解压 ZIP 后运行 `GokuGoku.exe`。这是免安装便携目录，请保留解压后的全部文件，不要只单独复制 EXE。

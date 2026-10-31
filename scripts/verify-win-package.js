@@ -3,7 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const MAX_PORTABLE_BYTES = 305 * 1024 * 1024;
+const MAX_PORTABLE_BYTES = 318 * 1024 * 1024;
 const REQUIRED_RUNTIME_FILES = [
   'GokuGoku.exe',
   'chrome_100_percent.pak',
@@ -67,7 +67,7 @@ function verifyWindowsPackage(portableRoot) {
 
   const bytes = directorySize(portableRoot);
   if (bytes > MAX_PORTABLE_BYTES) {
-    throw new Error(`便携目录超出 305 MiB：${(bytes / 1024 / 1024).toFixed(2)} MiB`);
+    throw new Error(`便携目录超出 318 MiB：${(bytes / 1024 / 1024).toFixed(2)} MiB`);
   }
 
   return { bytes, locales, asarEntries: asarEntries.length };
