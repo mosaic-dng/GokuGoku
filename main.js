@@ -315,6 +315,8 @@ function lockWindowNavigation(win, allowedUrl) {
 }
 
 function createWindows() {
+  // 无边框窗口仍会响应看不见的默认菜单快捷键。
+  Menu.setApplicationMenu(null);
   const { workArea } = screen.getPrimaryDisplay();
   mainWin = new BrowserWindow({
     width: 480,
