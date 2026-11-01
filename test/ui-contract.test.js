@@ -11,6 +11,11 @@ const indexJs = fs.readFileSync(path.join(root, 'ui', 'index.js'), 'utf8');
 const reminderHtml = fs.readFileSync(path.join(root, 'ui', 'reminder.html'), 'utf8');
 const mainJs = fs.readFileSync(path.join(root, 'main.js'), 'utf8');
 
+test('reminder confirmation uses the same status role as the main-window toast', () => {
+  assert.match(indexHtml, /<div id="toast" role="status"/);
+  assert.match(reminderHtml, /<div class="confirm" id="confirm" role="status">/);
+});
+
 test('renderer pages enforce a restrictive content security policy', () => {
   for (const html of [indexHtml, reminderHtml]) {
     assert.match(html, /<meta\s+http-equiv="Content-Security-Policy"/);
@@ -99,6 +104,29 @@ this.__setSetupRanges = (ranges) => { setupRanges = ranges; };
   context.updateSetupPreview();
   assert.equal(document.querySelector('#setupError').textContent, '每次喝水量请输入 50–1000ml');
   assert.equal(document.querySelector('#previewCups').textContent, '5杯');
+
+  document.querySelector('#setupCup').value = '200';
+  context.__setSetupRanges([
+    { start: '12:00', end: '13:00' },
+    { start: '15:00', end: '16:00' },
+  ]);
+  context.updateSetupPreview();
+  assert.equal(
+    document.querySelector('#setupError').textContent,
+    '首次设置最多添加两个免打扰时段，更多时段可稍后在课内设定中添加。',
+  );
+  assert.equal(document.querySelector('#previewCups').textContent, '5杯');
+
+  context.__setSetupRanges([
+    { start: '13:00', end: '12:00' },
+    { start: '15:00', end: '16:00' },
+  ]);
+  context.updateSetupPreview();
+  assert.equal(document.querySelector('#setupError').textContent, '免打扰结束时间必须晚于开始时间');
+
+  context.__setSetupRanges([{ start: '12:00', end: '13:00' }]);
+  context.updateSetupPreview();
+  assert.equal(document.querySelector('#setupError').textContent, '');
 
   document.querySelector('#weightInput').value = '60';
   document.querySelector('#cupInput').value = '300';
