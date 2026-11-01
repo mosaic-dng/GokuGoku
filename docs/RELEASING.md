@@ -30,7 +30,8 @@ git push origin main --follow-tags
 - 标签不是完整的稳定版本号；
 - 标签版本与 `package.json.version` 不一致；
 - 标签对应的提交不在 `main` 历史中；
-- 测试、Windows 打包或 EXE 版本检查失败。
+- 测试、Windows 打包或 EXE 版本检查失败；
+- 便携 ZIP 超过 160 MiB。
 
 不要移动、复用或强制覆盖已经发布的标签。普通 `main` 提交和 Pull Request 只运行 CI，不会创建 Release。
 
