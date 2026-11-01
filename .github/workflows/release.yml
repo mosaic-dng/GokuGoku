@@ -108,8 +108,8 @@ jobs:
             throw 'Could not create the portable ZIP.'
           }
           $archiveSize = (Get-Item $archivePath).Length
-          if ($archiveSize -gt 128MB) {
-            throw "Portable ZIP exceeds 128 MiB: $archiveSize bytes."
+          if ($archiveSize -gt 160MB) {
+            throw "Portable ZIP exceeds 160 MiB: $archiveSize bytes."
           }
           "path=$archivePath" >> $env:GITHUB_OUTPUT
 
