@@ -141,7 +141,10 @@ function updateSetupPreview() {
   const workEnd = $('#setupEnd').value;
   const numericError = validationMessage(validateProfileNumbers(weight, cup, interval));
   const workError = validationMessage(validateWorkHours(workStart, workEnd));
-  $('#setupError').textContent = numericError || workError || validationMessage(validateDndRanges(setupRanges));
+  const rangeLimitError = setupRanges.length >= 2
+    ? '首次设置最多添加两个免打扰时段，更多时段可稍后在课内设定中添加。'
+    : '';
+  $('#setupError').textContent = numericError || workError || validationMessage(validateDndRanges(setupRanges)) || rangeLimitError;
   if (numericError || workError) return;
   const preview = calculateTargets({ weightKg: weight, cupMl: cup, workStart, workEnd });
   $('#previewDaily').textContent = `${preview.dailyGoalMl}ml`;
@@ -239,10 +242,7 @@ function applySetupMode() {
 }
 
 function addSetupRange() {
-  if (setupRanges.length >= 2) {
-    $('#setupError').textContent = '首次设置最多添加两个免打扰时段，更多时段可稍后在课内设定中添加。';
-    return;
-  }
+  if (setupRanges.length >= 2) return;
   addRange(setupRanges, $('#setupDnd'), updateSetupPreview);
 }
 

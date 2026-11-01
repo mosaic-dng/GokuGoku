@@ -153,6 +153,7 @@ async function act(action, snoozeMinutes) {
     undoId = result.undoId;
     $('#confirmText').textContent = `已记录 ${result.cupMl}ml。喝水之后，肩膀也松一松。`;
     $('#confirm').classList.add('show');
+    $('#btnUndo').focus();
     let seconds = 6;
     $('#undoCount').textContent = `${seconds}s`;
     countdownTimer = setInterval(() => {
