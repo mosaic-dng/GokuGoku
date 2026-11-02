@@ -221,7 +221,11 @@ window.addEventListener('DOMContentLoaded', () => {
       closeSnoozeMenu(true);
     }
   });
-  $('#btnClose').addEventListener('click', () => act('dismiss'));
+  $('#btnClose').addEventListener('click', () => {
+    if (closing) return;
+    if (undoId) finishClose();
+    else act('dismiss');
+  });
   $('#btnUndo').addEventListener('click', undo);
   window.api.onReminder(show);
   window.api.onReminderCancel(cancel);
