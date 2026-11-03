@@ -170,11 +170,18 @@ async function act(action, snoozeMinutes) {
   finishClose();
 }
 
+function undoFailureMessage(reason) {
+  if (reason === 'not-latest') return '只能撤销最新的一杯。';
+  if (reason === 'storage') return COPY.undoStorage;
+  return '撤销时间已过，本课已经归档。';
+}
+
 async function undo() {
   if (!undoId || closing) return;
-  clearTimers();
-  const result = await window.api.undoDrink(undoId);
+  const id = undoId;
   undoId = null;
+  clearTimers();
+  const result = await window.api.undoDrink(id);
   if (result.ok) {
     Sound.womp();
     $('#confirmText').textContent = '已撤销，刚才那杯不计入进度。';
@@ -182,7 +189,7 @@ async function undo() {
     $('#undoCount').textContent = '';
     confirmTimer = setTimeout(() => finishClose(260), 900);
   } else {
-    $('#confirmText').textContent = '撤销时间已过，本课已经归档。';
+    $('#confirmText').textContent = undoFailureMessage(result.reason);
     confirmTimer = setTimeout(() => finishClose(260), 1100);
   }
 }
@@ -196,6 +203,10 @@ function cancel() {
   $('#btnUndo').style.display = '';
   $('#confirm').classList.remove('show');
 }
+
+document.addEventListener('keydown', (event) => {
+  if (event.repeat && event.target?.closest?.('button')) event.preventDefault();
+}, true);
 
 window.addEventListener('DOMContentLoaded', () => {
   $('#btnDrink').addEventListener('click', () => act('drink'));

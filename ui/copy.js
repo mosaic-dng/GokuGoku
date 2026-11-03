@@ -71,5 +71,6 @@ const COPY = {
     { pct: 0.7, text: '补水熟练工' },
     { pct: 1, text: '水分传说 · 办公室清流' },
   ],
+  undoStorage: '数据保存失败，撤销没有写入。',
 };
 if (typeof module !== 'undefined') module.exports = COPY;
