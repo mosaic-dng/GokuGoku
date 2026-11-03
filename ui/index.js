@@ -261,6 +261,12 @@ function syncSwitch(selector, enabled) {
 }
 
 /* ---------- Toast 与撤销 ---------- */
+function undoFailureMessage(reason) {
+  if (reason === 'not-latest') return '只能撤销最新的一杯。';
+  if (reason === 'storage') return COPY.undoStorage;
+  return '撤销时间已过，本课已经归档。';
+}
+
 function hideToast() {
   $('#toast').classList.remove('show', 'has-action', 'gold');
   toastUndoId = null;
@@ -278,12 +284,14 @@ function toast(message, { gold = false, undoId = null, duration = 4200 } = {}) {
 
 async function undoFromToast() {
   if (!toastUndoId) return;
-  const result = await window.api.undoDrink(toastUndoId);
+  const id = toastUndoId;
+  toastUndoId = null;
+  const result = await window.api.undoDrink(id);
   if (result.ok) {
     Sound.womp();
     toast('已撤销刚才一杯，进度已经扣回。');
   } else {
-    toast(result.reason === 'expired' ? '撤销时间已过，本课已经归档。' : '只能撤销最新的一杯。');
+    toast(undoFailureMessage(result.reason));
   }
 }
 
@@ -436,6 +444,10 @@ async function saveManualInterval() {
 }
 
 /* ---------- 事件 ---------- */
+document.addEventListener('keydown', (event) => {
+  if (event.repeat && event.target?.closest?.('button')) event.preventDefault();
+}, true);
+
 window.addEventListener('DOMContentLoaded', () => {
   requestAnimationFrame(() => document.body.classList.add('ui-ready'));
   applySetupMode();
